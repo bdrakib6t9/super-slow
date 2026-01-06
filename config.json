@@ -1,1 +1,118 @@
-config
+{
+  "facebookAccount": {
+    "email": "hoon6t9@gmail.com",
+    "password": "",
+    "2FASecret": "",
+    "i_user": "",
+    "proxy": null,
+    "userAgent": "Mozilla/5.0 (Linux; Android 12; M2102J20SG) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/101.0.0.0 Mobile Safari/537.36",
+    "intervalGetNewCookie": 1440,
+    "notes": "time the system automatically retrieves new cookies from email/password, unit is minute"
+  },
+
+  "database": {
+    "type": "mongodb",
+    "uriMongodb": "mongodb+srv://GoatBot:goatbot1234@goatbot.an3ugni.mongodb.net/goatbot",
+    "autoSyncWhenStart": false,
+    "autoRefreshThreadInfoFirstTime": true
+  },
+
+  "antiInbox": false,
+  "language": "en",
+
+  "adminOnly": {
+    "enable": false,
+    "ignoreCommand": []
+  },
+
+  "adminBot": [
+    "61581351693349",
+    "100052705607822",
+    "61558779490921",
+    "61585852804866"
+  ],
+
+  "whiteListModeThread": {
+    "enable": false,
+    "whiteListThreadIds": []
+  },
+
+  "hideNotiMessage": {
+    "whiteListModeThread": false
+  },
+
+  "whiteListMode": {
+    "enable": false,
+    "whiteListIds": []
+  },
+
+  "nickNameBot": "𝐓𝐞𝐬𝐬𝐚 𝐛𝐚𝐛𝐲",
+  "prefix": ".",
+  "timeZone": "Asia/Dhaka",
+
+  "credentials": {
+    "gmailAccount": {
+      "email": "ilomikparaphael@gmail.com",
+      "clientId": "707976531024-j0h1m1r5lld2ck2eb0iss8pet8fkiu2g.apps.googleusercontent.com",
+      "clientSecret": "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",
+      "refreshToken": "1//0435VRKIR84KGCgYIARAAGAQSNwF-L9Irq-ndiTGzeY_17lETxH8ccgdXPLS8t9G3WDzioOirdR6kJXEdszdv3O1KFVoHv1r-l_U",
+      "apiKey": ""
+    },
+    "gRecaptcha": {
+      "siteKey": "6LcMWCUqAAAAAKzK5DEfrW0mN71Lz1Ot_mU3mRXk",
+      "secretKey": "6LcMWCUqAAAAAMzJ4v_gN3K97cO7gEnZmbU87bT4"
+    }
+  },
+
+  "dashboard": {
+    "enable": true,
+    "expireVerifyCode": 300000,
+    "port": 3001
+  },
+
+  "serverUptime": {
+    "enable": true,
+    "port": 3001
+  },
+
+  "autoRestart": {
+    "time": 3600000
+  },
+
+  "autoUptime": {
+    "enable": true,
+    "timeInterval": 180,
+    "url": "uptime.betterstack.com/team/167465/monitors/news"
+  },
+
+  "autoLoadScripts": {
+    "enable": true,
+    "ignoreCmds": "",
+    "ignoreEvents": ""
+  },
+
+  "autoRefreshFbstate": true,
+  "autoReloginWhenChangeAccount": true,
+  "autoRestartWhenListenMqttError": true,
+
+  "optionsFca": {
+    "forceLogin": true,
+    "listenEvents": true,
+    "updatePresence": true,
+    "listenTyping": true,
+    "logLevel": "error",
+    "selfListen": false,
+    "selfListenEvent": true,
+    "autoMarkDelivery": true,
+    "autoReconnect": true
+  },
+
+  "logEvents": {
+    "disableAll": false,
+    "message": true,
+    "message_reaction": true,
+    "message_unsend": true,
+    "message_reply": true,
+    "event": true
+  }
+}
