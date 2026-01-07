@@ -1,12 +1,15 @@
+const fs = require("fs");
+const path = require("path");
 const moment = require("moment-timezone");
+
 const TIMEZONE = "Asia/Dhaka";
+const DATA_FILE = path.join(__dirname, "lastHour.json");
 
 const header = `
 ━━━━━━━━━━━━━━━━━━
 🎀𝗧𝗘𝗦𝗦𝗔 𝗧𝗜𝗠𝗘 𝗥𝗢𝗨𝗧𝗜𝗡𝗘🥀
 ━━━━━━━━━━━━━━━━━━
 `;
-
 const routine = {
   "00": "🌙 রাত ১২টা বাজে।\nমোবাইল সাইলেন্ট করে পানি খেয়ে ঘুমাতে যাও, কাল কিন্তু অনেক কাজ তোমার অপেক্ষায়! 😴",
 
@@ -56,7 +59,21 @@ const routine = {
 
   "23": "🌙 রাত ১১টা বাজে।\nযাদের সকালবেলার অ্যালার্ম সেট করা হয়নি, এখনই করে রাখো; তারপর ‘শেষ স্ক্রল’ করে লগআউট হয়ে যাও 😉"
 };
-let lastHour = null;
+
+// 🔹 last sent hour load
+function getLastHour() {
+  if (!fs.existsSync(DATA_FILE)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(DATA_FILE)).hour;
+  } catch {
+    return null;
+  }
+}
+
+// 🔹 save last sent hour
+function setLastHour(hour) {
+  fs.writeFileSync(DATA_FILE, JSON.stringify({ hour }));
+}
 
 module.exports = {
   config: {
@@ -64,27 +81,45 @@ module.exports = {
     category: "events"
   },
 
-  // 🔹 loader requirement
   onStart: async function () {},
 
   onLoad: async function ({ api, threadsData }) {
     setInterval(async () => {
       const now = moment().tz(TIMEZONE);
-      const hour = now.format("HH");
-      if (hour === lastHour) return;
-      lastHour = hour;
 
-      const text = routine[hour];
-      if (!text) return;
+      // বর্তমান ঘন্টা (00–23)
+      const currentHour = now.format("HH");
+
+      // শেষ পাঠানো ঘন্টা
+      const lastHour = getLastHour();
+
+      // ❌ একই ঘন্টা হলে কিছুই করবে না
+      if (currentHour === lastHour) return;
+
+      // 🔹 আগের ঘন্টার মেসেজ পাঠাবে
+      const sendHour = lastHour === null
+        ? currentHour
+        : String((parseInt(lastHour) + 1) % 24).padStart(2, "0");
+
+      const text = routine[sendHour];
+      if (!text) {
+        setLastHour(currentHour);
+        return;
+      }
 
       const msg =
         `${header}🕒 ${now.format("hh:mm A")}\n\n${text}`;
 
       const threads = await threadsData.getAll();
       for (const t of threads) {
-        if (t.threadID)
+        if (t.threadID) {
           api.sendMessage(msg, t.threadID).catch(() => {});
+        }
       }
-    }, 60 * 1000);
+
+      // ✅ hour update
+      setLastHour(sendHour);
+
+    }, 60 * 1000); // প্রতি মিনিটে চেক
   }
 };
