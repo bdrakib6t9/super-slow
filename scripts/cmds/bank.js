@@ -93,35 +93,39 @@ module.exports = {
       await save();
     }
 
-    else if (sub === "withdraw" || sub === "with") {
+  // ===== WITHDRAW (FIXED & SAFE) =====
+else if (sub === "withdraw" || sub === "with") {
 
-  // ===== DETERMINE WITHDRAW AMOUNT =====
-  let amt;
+  // ----- resolve withdraw amount -----
+  let wAmt;
 
   if (!args[1] || args[1].toLowerCase() === "all") {
-    amt = bank; // withdraw all = bank balance
+    wAmt = bank; // withdraw all = bank balance
   } else {
-    amt = utils.parseAmount(args[1], "bank", wallet, bank, loan);
+    wAmt = utils.parseAmount(args[1], "bank", wallet, bank, loan);
   }
 
-  if (amt === null || typeof amt !== "bigint" || amt <= 0n)
+  if (wAmt === null || typeof wAmt !== "bigint" || wAmt <= 0n)
     return message.reply(getLang("invalidAmount"));
 
-  if (bank < amt)
+  if (bank < wAmt)
     return message.reply(getLang("notEnoughBank"));
 
-  const space = WALLET_LIMIT - wallet;
+  // ----- wallet limit check (150cs) -----
+  const space = WALLET_LIMIT > wallet ? WALLET_LIMIT - wallet : 0n;
 
   if (space <= 0n)
     return message.reply(getLang("walletFull"));
 
-  const withdrawAmt = amt > space ? space : amt;
+  // ----- partial withdraw if limit hits -----
+  const withdrawAmt = wAmt > space ? space : wAmt;
 
   bank -= withdrawAmt;
   wallet += withdrawAmt;
   await save();
 
-  if (withdrawAmt < amt) {
+  // ----- limit hit message -----
+  if (withdrawAmt < wAmt) {
     return message.reply(
       getLang(
         "walletLimitHit",
@@ -129,7 +133,7 @@ module.exports = {
       )
     );
   }
-  }
+          }
     // ===== LOAN =====
     else if (sub === "loan") {
       if (amt > LOAN_LIMIT)
