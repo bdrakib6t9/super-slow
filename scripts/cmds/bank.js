@@ -94,7 +94,7 @@ module.exports = {
     }
 
 // ===== WITHDRAW (FINAL & CORRECT) =====
-else if (sub === "withdraw" || sub === "with") {
+      else if (sub === "withdraw" || sub === "with") {
 
   if (bank <= 0n)
     return message.reply(getLang("notEnoughBank"));
@@ -106,31 +106,19 @@ else if (sub === "withdraw" || sub === "with") {
     reqAmt = utils.parseAmount(args[1], "bank", wallet, bank, loan);
   }
 
-  if (reqAmt === null || typeof reqAmt !== "bigint" || reqAmt <= 0n)
+  if (!reqAmt || typeof reqAmt !== "bigint" || reqAmt <= 0n)
     return message.reply(getLang("invalidAmount"));
 
-  // 🔥 wallet max = 150cs
-  const space = WALLET_LIMIT - wallet;
+  // 1️⃣ raw withdraw
+  const actual = reqAmt > bank ? bank : reqAmt;
+  wallet += actual;
+  bank -= actual;
 
-  if (space <= 0n)
-    return message.reply(getLang("walletFull"));
-
-  const withdrawAmt = reqAmt > space ? space : reqAmt;
-
-  wallet += withdrawAmt;
-  bank -= withdrawAmt;
+  // 2️⃣ GLOBAL wallet cap (150cs auto bank)
+  ({ wallet, bank } = utils.applyWalletLimit(wallet, bank));
 
   await save();
-
-  if (withdrawAmt < reqAmt) {
-    return message.reply(
-      getLang(
-        "walletLimitHit",
-        utils.formatMoney(withdrawAmt)
-      )
-    );
-  }
-        }
+      }
     // ===== LOAN =====
     else if (sub === "loan") {
       if (amt > LOAN_LIMIT)
