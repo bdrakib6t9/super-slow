@@ -1,81 +1,102 @@
 const axios = require("axios");
-
-async function getStreamFromURL(url) {
-  const response = await axios.get(url, { responseType: "stream" });
-  return response.data;
-}
-
-const mahmud = async () => {
-  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
-  return base.data.mahmud;
-};
+const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   config: {
     name: "tiktok",
-    aliases: ["tiksr"],
-    author: "MahMUD",
-    version: "1.7",
+    version: "3.1",
+    author: "Rakib",
+    role: 0,
+    shortDescription: "Search TikTok videos & download by reply",
+    longDescription: {
+      en: "Search TikTok videos, reply with a number to download"
+    },
     category: "media",
-    shortDescription: { en: "Play TikTok video instantly" },
-    longDescription: { en: "Search and play TikTok video directly by keyword." },
-    guide: { en: "{p}{n} [keyword]" }
+    guide: {
+      en: "{pn} <search text>"
+    }
   },
 
   onStart: async function ({ api, event, args }) {
-    const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
-    if (module.exports.config.author !== obfuscatedAuthor) {
+    const query = args.join(" ");
+    if (!query)
       return api.sendMessage(
-        "❌ | You are not authorized to change the author name.",
-        event.threadID,
-        event.messageID
+        "❌ Usage: tiktok <search text>",
+        event.threadID
       );
-    }
-const keyword = args.join(" ");
-    if (!keyword) {
-      return api.sendMessage(
-        "❌ Please provide a keyword.\nExample: {p}tiktok anime video",
-        event.threadID,
-        event.messageID
-      );
-    }
+
+    api.sendMessage("🔍 Searching TikTok videos...", event.threadID);
 
     try {
-      const apiUrl = await mahmud();
-      const response = await axios.get(`${apiUrl}/api/tiktok?keyword=${encodeURIComponent(keyword)}`);
-      const videos = response.data.videos;
+      const res = await axios.get(
+        `https://tikwm.com/api/feed/search?keywords=${encodeURIComponent(query)}`
+      );
 
-      if (!videos || videos.length === 0) {
-        return api.sendMessage(
-          `❌ No TikTok videos found for: ${keyword}`,
+      const videos = res.data?.data?.videos?.slice(0, 10);
+      if (!videos || videos.length === 0)
+        return api.sendMessage("❌ No videos found.", event.threadID);
+
+      let msg = "🎵 TikTok Search Result\n\n";
+      videos.forEach((v, i) => {
+        msg += `${i + 1}. 👤 ${v.author.unique_id}\n`;
+      });
+      msg += "\n🔢 Reply with a number (1–10)";
+
+      api.sendMessage(msg, event.threadID, (err, info) => {
+        global.GoatBot.onReply.set(info.messageID, {
+          commandName: "tiktok",
+          videos
+        });
+      });
+
+    } catch (err) {
+      console.error(err);
+      api.sendMessage("❌ Failed to fetch TikTok videos.", event.threadID);
+    }
+  },
+
+  onReply: async function ({ api, event, Reply }) {
+    const choice = parseInt(event.body);
+    const videos = Reply.videos;
+
+    if (isNaN(choice) || choice < 1 || choice > videos.length)
+      return api.sendMessage("❌ Invalid number.", event.threadID);
+
+    const video = videos[choice - 1];
+    const videoUrl = video.play;
+    const filePath = path.join(__dirname, "cache", "tiktok.mp4");
+
+    api.sendMessage("⬇️ Downloading video...", event.threadID);
+
+    try {
+      const stream = await axios({
+        url: videoUrl,
+        method: "GET",
+        responseType: "stream"
+      });
+
+      const writer = fs.createWriteStream(filePath);
+      stream.data.pipe(writer);
+
+      writer.on("finish", () => {
+        api.sendMessage(
+          {
+            body:
+`🚀 𝗧𝗘𝗦𝗦𝗔 𝗕𝗢𝗧 🤖
+🎬 𝗧𝗶𝗸𝗧𝗼𝗸 𝗩𝗶𝗱𝗲𝗼 𝗗𝗲𝗹𝗶𝘃𝗲𝗿𝗲𝗱
+💎 𝗤𝘂𝗮𝗹𝗶𝘁𝘆 𝗖𝗼𝗻𝘁𝗲𝗻𝘁
+modified:hoon`,
+            attachment: fs.createReadStream(filePath)
+          },
           event.threadID,
-          event.messageID
+          () => fs.unlinkSync(filePath)
         );
-      }
+      });
 
-      const selectedVideo = videos[0];
-      const videoUrl = selectedVideo.play;
-
-      if (!videoUrl) {
-        return api.sendMessage("⚠️ Error: Video not found.", event.threadID, event.messageID);
-      }
-
-      const videoStream = await getStreamFromURL(videoUrl);
-      await api.sendMessage(
-        {
-          body: `𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝐭𝐢𝐤𝐭𝐨𝐤 𝐯𝐢𝐝𝐞𝐨 𝐛𝐚𝐛𝐲 😘>`,
-          attachment: videoStream,
-        },
-        event.threadID,
-        event.messageID
-      );
-    } catch (error) {
-      console.error(error);
-      api.sendMessage(
-        "🥹error, contact hoon",
-        event.threadID,
-        event.messageID
-      );
+    } catch (err) {
+      console.error(err);
+      api.sendMessage("❌ Download failed.", event.threadID);
     }
   }
 };
