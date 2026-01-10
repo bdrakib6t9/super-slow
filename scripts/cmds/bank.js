@@ -93,13 +93,14 @@ module.exports = {
       await save();
     }
 
-// ===== WITHDRAW (WALLET CAP = 150cs) =====
+// ===== WITHDRAW (FINAL & CORRECT) =====
 else if (sub === "withdraw" || sub === "with") {
 
-  // determine requested amount
+  // ----- resolve requested withdraw amount -----
   let reqAmt;
+
   if (!args[1] || args[1].toLowerCase() === "all") {
-    reqAmt = bank; // user wants all from bank
+    reqAmt = bank; // withdraw all = full bank
   } else {
     reqAmt = utils.parseAmount(args[1], "bank", wallet, bank, loan);
   }
@@ -110,24 +111,22 @@ else if (sub === "withdraw" || sub === "with") {
   if (bank <= 0n)
     return message.reply(getLang("notEnoughBank"));
 
-  // how much space left in wallet
+  // ----- wallet space (150cs cap) -----
   const space = WALLET_LIMIT - wallet;
 
   if (space <= 0n)
     return message.reply(getLang("walletFull"));
 
-  // actual withdraw = min(requested, space, bank)
-  const withdrawAmt =
-    reqAmt > space ? space :
-    reqAmt > bank ? bank :
-    reqAmt;
+  // ----- actual withdraw amount -----
+  const withdrawAmt = reqAmt > space ? space : reqAmt;
 
-  // ----- apply withdraw -----
-wallet = wallet + withdrawAmt;
-bank = bank - withdrawAmt;
-await save();
-  
-  // if not fully withdrawn
+  // ----- apply withdraw (IMPORTANT PART) -----
+  wallet = wallet + withdrawAmt;
+  bank = bank - withdrawAmt;
+
+  await save();
+
+  // ----- partial withdraw message -----
   if (withdrawAmt < reqAmt) {
     return message.reply(
       getLang(
@@ -136,7 +135,7 @@ await save();
       )
     );
   }
-}
+  }
     // ===== LOAN =====
     else if (sub === "loan") {
       if (amt > LOAN_LIMIT)
