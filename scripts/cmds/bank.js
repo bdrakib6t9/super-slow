@@ -122,10 +122,11 @@ else if (sub === "withdraw" || sub === "with") {
     reqAmt > bank ? bank :
     reqAmt;
 
-  bank -= withdrawAmt;
-  wallet += withdrawAmt;
-  await save();
-
+  // ----- apply withdraw -----
+wallet = wallet + withdrawAmt;
+bank = bank - withdrawAmt;
+await save();
+  
   // if not fully withdrawn
   if (withdrawAmt < reqAmt) {
     return message.reply(
