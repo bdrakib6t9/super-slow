@@ -4,7 +4,7 @@ module.exports = {
   config: {
     name: "bank",
     aliases: ["vault"],
-    version: "5.1",
+    version: "6.0",
     author: "Rakib",
     role: 0,
     category: "economy"
@@ -25,13 +25,14 @@ module.exports = {
       noLoan: "❌ No active loan",
 
       walletFull:
-        "⚠️ Wallet balance limit (150cs) is already full.\n" +
-        "🏦 Your money is safe in the bank.",
+        "🔒 Wallet ভর্তি হয়ে গেছে!\n" +
+        "💼 সর্বোচ্চ ব্যালেন্স: 150cs\n" +
+        "🏦 চিন্তা নেই—বাকি টাকা নিরাপদে ব্যাংকেই আছে 🙂",
 
       walletLimitHit:
-        "⚠️ Wallet balance limit reached!\n" +
-        "💼 Withdrawn: %1\n" +
-        "🏦 Remaining amount stayed in bank."
+        "⚠️ Wallet ব্যালেন্স লিমিট পূর্ণ!\n" +
+        "💼 Wallet-এ গেছে: %1\n" +
+        "🏦 অতিরিক্ত টাকা ব্যাংকেই রাখা হয়েছে নিরাপদে 🙂"
     }
   },
 
@@ -39,23 +40,23 @@ module.exports = {
     const uid = event.senderID;
     const user = await usersData.get(uid) || {};
 
-    // ===== LOAD DATA (BigInt SAFE) =====
-    let wallet = BigInt(user.money || 0);
-    let bank = BigInt(user.data?.bank || 0);
-    let loan = BigInt(user.data?.loan || 0);
+    // ===== LOAD DATA (DECIMAL SAFE) =====
+    let wallet = Number(user.money || 0);
+    let bank = Number(user.data?.bank || 0);
+    let loan = Number(user.data?.loan || 0);
 
     const save = async () => {
       await usersData.set(uid, {
-        money: wallet.toString(),
+        money: wallet,
         data: {
-          bank: bank.toString(),
-          loan: loan.toString()
+          bank,
+          loan
         }
       });
     };
 
-    const LOAN_LIMIT = 1_000_000_000_000n; // 1 trillion
-    const WALLET_LIMIT = 150n; // wallet cap
+    const WALLET_LIMIT = 150;
+    const LOAN_LIMIT = 1_000_000_000_000;
 
     // ===== SHOW STATUS =====
     if (!args[0]) {
@@ -71,16 +72,9 @@ module.exports = {
 
     const sub = args[0].toLowerCase();
 
-    // ===== DETERMINE MODE =====
-    const mode =
-      sub === "withdraw" ? "bank" :
-      sub === "repay" || sub === "pay" ? "loan" :
-      "wallet";
-
     // ===== PARSE AMOUNT =====
-    const amt = utils.parseAmount(args[1], mode, wallet, bank, loan);
-
-    if (amt === null || typeof amt !== "bigint" || amt <= 0n)
+    const amt = utils.parseAmount(args[1], "wallet", wallet, bank, loan);
+    if (!amt || amt <= 0)
       return message.reply(getLang("invalidAmount"));
 
     // ===== DEPOSIT =====
@@ -100,19 +94,16 @@ module.exports = {
 
       const space = WALLET_LIMIT - wallet;
 
-      // wallet already full
-      if (space <= 0n) {
+      if (space <= 0) {
         return message.reply(getLang("walletFull"));
       }
 
-      // partial withdraw if needed
       const withdrawAmt = amt > space ? space : amt;
 
       bank -= withdrawAmt;
       wallet += withdrawAmt;
       await save();
 
-      // limit hit message
       if (withdrawAmt < amt) {
         return message.reply(
           getLang(
@@ -135,7 +126,7 @@ module.exports = {
 
     // ===== REPAY =====
     else if (sub === "repay" || sub === "pay") {
-      if (loan <= 0n)
+      if (loan <= 0)
         return message.reply(getLang("noLoan"));
 
       const pay = amt > loan ? loan : amt;
