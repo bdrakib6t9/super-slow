@@ -1,10 +1,18 @@
 const utils = require("../../utils.js");
 
+// ===== SAFE NUMBER PARSER =====
+function toNumber(val) {
+  if (typeof val === "number") return val;
+  if (typeof val === "string")
+    return parseFloat(val.replace(/[^\d.]/g, "")) || 0;
+  return 0;
+}
+
 module.exports = {
   config: {
     name: "bank",
     aliases: ["vault"],
-    version: "6.0",
+    version: "6.5",
     author: "Rakib",
     role: 0,
     category: "economy"
@@ -14,15 +22,15 @@ module.exports = {
     en: {
       status:
         "💳 Your balance:\n" +
-        "💼 Wallet: %1\n" +
+        "💼 Bal: %1\n" +
         "🏦 Bank: %2\n" +
         "💸 Loan: %3",
 
       invalidAmount: "❌ Invalid amount",
       notEnoughWallet: "❌ Not enough wallet balance",
       notEnoughBank: "❌ Not enough bank balance",
+      noLoan: "❌ You don't have any active loan",
       loanLimit: "❌ Loan limit exceeded",
-      noLoan: "❌ No active loan",
 
       walletFull:
         "🔒 Wallet ভর্তি হয়ে গেছে!\n" +
@@ -38,12 +46,12 @@ module.exports = {
 
   onStart: async function ({ message, event, args, usersData, getLang }) {
     const uid = event.senderID;
-    const user = await usersData.get(uid) || {};
+    const userData = await usersData.get(uid) || {};
 
-    // ===== LOAD DATA (DECIMAL SAFE) =====
-    let wallet = Number(user.money || 0);
-    let bank = Number(user.data?.bank || 0);
-    let loan = Number(user.data?.loan || 0);
+    // ===== LOAD BALANCE (RAW LIKE balance.js) =====
+    let wallet = toNumber(userData.money);
+    let bank = toNumber(userData.data?.bank);
+    let loan = toNumber(userData.data?.loan);
 
     const save = async () => {
       await usersData.set(uid, {
@@ -87,7 +95,7 @@ module.exports = {
       await save();
     }
 
-    // ===== WITHDRAW (WITH WALLET LIMIT) =====
+    // ===== WITHDRAW (WALLET LIMIT SAFE) =====
     else if (sub === "withdraw" || sub === "with") {
       if (bank < amt)
         return message.reply(getLang("notEnoughBank"));
@@ -98,7 +106,7 @@ module.exports = {
         return message.reply(getLang("walletFull"));
       }
 
-      const withdrawAmt = amt > space ? space : amt;
+      const withdrawAmt = Math.min(space, amt);
 
       bank -= withdrawAmt;
       wallet += withdrawAmt;
@@ -129,7 +137,8 @@ module.exports = {
       if (loan <= 0)
         return message.reply(getLang("noLoan"));
 
-      const pay = amt > loan ? loan : amt;
+      const pay = Math.min(amt, loan);
+
       if (wallet < pay)
         return message.reply(getLang("notEnoughWallet"));
 
