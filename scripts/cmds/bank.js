@@ -12,7 +12,7 @@ module.exports = {
   config: {
     name: "bank",
     aliases: ["vault"],
-    version: "6.5",
+    version: "7.0",
     author: "Rakib",
     role: 0,
     category: "economy"
@@ -48,7 +48,7 @@ module.exports = {
     const uid = event.senderID;
     const userData = await usersData.get(uid) || {};
 
-    // ===== LOAD BALANCE (RAW LIKE balance.js) =====
+    // ===== LOAD BALANCE (SAME STYLE AS balance.js) =====
     let wallet = toNumber(userData.money);
     let bank = toNumber(userData.data?.bank);
     let loan = toNumber(userData.data?.loan);
@@ -80,9 +80,12 @@ module.exports = {
 
     const sub = args[0].toLowerCase();
 
-    // ===== PARSE AMOUNT =====
-    const amt = utils.parseAmount(args[1], "wallet", wallet, bank, loan);
-    if (!amt || amt <= 0)
+    // ===== PARSE AMOUNT (FORCE NUMBER) =====
+    const amt = Number(
+      utils.parseAmount(args[1], "wallet", wallet, bank, loan)
+    );
+
+    if (!Number.isFinite(amt) || amt <= 0)
       return message.reply(getLang("invalidAmount"));
 
     // ===== DEPOSIT =====
@@ -95,7 +98,7 @@ module.exports = {
       await save();
     }
 
-    // ===== WITHDRAW (WALLET LIMIT SAFE) =====
+    // ===== WITHDRAW (WITH WALLET LIMIT) =====
     else if (sub === "withdraw" || sub === "with") {
       if (bank < amt)
         return message.reply(getLang("notEnoughBank"));
