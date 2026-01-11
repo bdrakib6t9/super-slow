@@ -102,7 +102,7 @@ module.exports = {
       );
     } catch (error) {
       api.sendMessage(
-        "🥹error, contact MahMUD.",
+        "🥹error, contact tessa.",
         event.threadID,
         event.messageID
       );

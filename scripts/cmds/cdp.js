@@ -62,7 +62,7 @@ module.exports = {
 
     } catch (error) {
       console.error("CDP command error:", error.message || error);
-      message.reply("🥹error, contact MahMUD.");
+      message.reply("🥹error, contact tessa.");
     }
   }
 };

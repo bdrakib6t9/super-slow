@@ -44,7 +44,7 @@ module.exports = {
       }, threadID, () => fs.unlinkSync(file), messageID);
 
     } catch {
-      api.sendMessage("🥹error, contact MahMUD.", threadID, messageID);
+      api.sendMessage("🥹error, contact tessa.", threadID, messageID);
     }
   }
 };

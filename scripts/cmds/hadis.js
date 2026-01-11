@@ -44,7 +44,7 @@ module.exports = {
         `${hadis.text}\n\n- ${hadis.source} 🖤`
       );
     } catch (err) {
-      message.reply("🥹error, contact MahMUD");
+      message.reply("🥹error, contact tessa");
     }
   }
 };

@@ -42,7 +42,7 @@ module.exports = {
 
       message.reply(`${msg}\n\n😂 ${joke}`);
     } catch (err) {
-      message.reply("🥹error, contact MahMUD");
+      message.reply("🥹error, contact tessa");
     }
   }
 };

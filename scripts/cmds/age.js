@@ -44,7 +44,7 @@ module.exports = {
 
       return message.reply(data.message);
     } catch (error) {
-      return message.reply("🥹error, contact MahMUD.");
+      return message.reply("🥹error, contact tessa.");
     }
   }
 };

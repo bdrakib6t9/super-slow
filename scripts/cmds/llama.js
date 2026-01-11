@@ -44,7 +44,7 @@ module.exports = {
 
     } catch (err) {
       console.error(err);
-      api.sendMessage("🥹error, contact MahMUD.", event.threadID, event.messageID);
+      api.sendMessage("🥹error, contact tessa.", event.threadID, event.messageID);
     }
   }
 };

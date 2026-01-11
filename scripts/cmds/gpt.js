@@ -52,7 +52,7 @@ module.exports = {
 
     } catch (error) {
       console.error("GPT command error:", error.response?.data || error.message);
-      api.sendMessage("🥹error, contact MahMUD", event.threadID, event.messageID);
+      api.sendMessage("🥹error, contact tessa", event.threadID, event.messageID);
     }
   },
 
@@ -87,7 +87,7 @@ module.exports = {
 
     } catch (error) {
       console.error("GPT reply error:", error.response?.data || error.message);
-      api.sendMessage("🥹error, contact MahMUD", event.threadID, event.messageID);
+      api.sendMessage("🥹error, contact tessa", event.threadID, event.messageID);
     }
   }
 };

@@ -80,7 +80,7 @@ module.exports = {
         try { fs.unlinkSync(filePath); } catch {}
       }, 5000);
     } catch {
-      await message.reply("🥹error, contact MahMUD.");
+      await message.reply("🥹error, contact tessa.");
     }
   },
 };
