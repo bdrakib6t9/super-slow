@@ -3,7 +3,7 @@ const ITEMS_PER_PAGE = 10;
 module.exports.config = {
   name: "cmdstore",
   aliases: ["allcmd", "cmds"],
-  author: "Fixed by ChatGPT",
+  author: "Rakib",
   role: 0,
   version: "1.0",
   description: {
