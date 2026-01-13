@@ -46,10 +46,8 @@ module.exports = {
 
   onStart: async function ({ message, usersData, event, getLang }) {
 
-    // ===== LOAD USER BALANCE (RAW) =====
     const getUserBalances = async (uid) => {
       const userData = await usersData.get(uid) || {};
-
       return {
         wallet: userData.money ?? "0",
         bank: userData.data?.bank ?? "0",
@@ -57,6 +55,22 @@ module.exports = {
         name: userData.name || "Unknown"
       };
     };
+
+    // ===== REPLY USER =====
+    if (event.messageReply) {
+      const uid = event.messageReply.senderID;
+      const { wallet, bank, loan, name } = await getUserBalances(uid);
+
+      return message.reply(
+        getLang(
+          "moneyOf",
+          name,
+          utils.formatMoney(wallet),
+          utils.formatMoney(bank),
+          utils.formatMoney(loan)
+        )
+      );
+    }
 
     // ===== MENTION USERS =====
     if (Object.keys(event.mentions).length > 0) {
