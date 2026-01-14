@@ -5,10 +5,6 @@ const mahmud = async () => {
   return base.data.mahmud;
 };
 
-/**
-* @author: do not delete it
-*/
-
 module.exports = {
   config: {
     name: "animeinfo",
@@ -18,7 +14,7 @@ module.exports = {
     description: "Anime info fetcher",
     usage: "af <anime name>",
     cooldown: 5,
-    author: "MahMUD"
+    author: "Rakib"
   },
 
   onStart: async function ({ api, event, args }) {

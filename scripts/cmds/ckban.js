@@ -2,7 +2,7 @@ module.exports = {
   config: {
     name: "ckban",
     version: "1.7",
-    author: 'MahMUD',
+    author: 'Rakib',
     countDown: 1,
     role: 0,
     category: 'general',
