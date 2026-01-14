@@ -4,7 +4,7 @@ module.exports = {
     name: "testdm",
     aliases: ["tdm"],
     version: "1.1",
-    author: "Debug",
+    author: "Rakib",
     countDown: 5,
     role: 2,
     category: "system",
