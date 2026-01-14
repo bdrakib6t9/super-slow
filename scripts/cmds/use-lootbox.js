@@ -2,7 +2,7 @@ module.exports = {
 	config: {
 		name: "use-lootbox",
 		aliases: ["uselt", "use lt"],
-		author: "Rakib+ChatGPT",
+		author: "Rakib",
 		role: 0,
 		category: "economy",
 		countDown: 5
