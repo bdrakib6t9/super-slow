@@ -2,7 +2,7 @@ module.exports = {
   config: {
     name: "adm",
     version: "1.1",
-    author: "ChatGPT",
+    author: "Rakib",
     countDown: 5,
     role: 1,
     description: {
