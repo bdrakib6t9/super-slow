@@ -18,7 +18,7 @@ module.exports = {
     aliases: ["anivid", "animevideo"],
     version: "1.7",
     role: 0,
-    author: "MahMUD",
+    author: "Rakib",
     category: "anime",
     guide: {
       en: "Use {pn} to get a random anime video or {pn} list to see total anime count."

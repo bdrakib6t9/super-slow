@@ -17,7 +17,7 @@ module.exports = {
     name: "trigger",
     aliases: ["triggered"],
     version: "1.0",
-    author: "MahMUD",
+    author: "Rakib",
     role: 0,
     category: "fun",
     cooldown: 10,

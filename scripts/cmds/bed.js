@@ -16,7 +16,7 @@ module.exports = {
   config: {
     name: "bed",
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 5,
     role: 0,
     longDescription: "Generate anime-style bed hug image",
@@ -26,7 +26,6 @@ module.exports = {
 
   onStart: async function ({ message, event, api }) {
     try {
-      const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
       if (module.exports.config.author.trim() !== obfuscatedAuthor) {
         return api.sendMessage(
           "❌ | You are not authorized to change the author name.",

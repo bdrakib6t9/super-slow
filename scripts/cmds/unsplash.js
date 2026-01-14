@@ -12,7 +12,7 @@ module.exports = {
     name: "unsplash",
     aliases: ["uph"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     category: "media",
     guide: "Example: {pn} cat - 10"
   },

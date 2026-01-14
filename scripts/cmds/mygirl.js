@@ -10,13 +10,12 @@ module.exports.config = {
   name: "mygirl",
   version: "1.7",
   role: 0,
-  author: "MahMUD",
+  author: "Rakib",
   category: "love",
   cooldowns: 5
 };
 
 module.exports.onStart = async ({ event, api, args }) => {
-  const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
     if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
     }

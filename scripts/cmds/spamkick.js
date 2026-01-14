@@ -9,14 +9,13 @@ module.exports.config = {
   name: "spamkick",
   version: "1.7",
   role: 1, 
-  author: "MahMUD",
+  author: "Rakib",
   description: { en:"auto spamkick a user who spam messages in a group chat"},
   category: "box chat",
   guide: { en:"[on/off] or [settings]"},
 
 };
 module.exports.onChat = async ({ api, event, usersData }) => {
-  const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
     if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage(
         "❌ | You are not authorized to change the author name.",

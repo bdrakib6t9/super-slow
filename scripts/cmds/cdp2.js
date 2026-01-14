@@ -10,7 +10,7 @@ module.exports = {
     name: "copuledp2",
     aliases: ["cdp2"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 10,
     role: 0,
     longDescription: "Fetch a random couple DP for nibba and nibbi",
@@ -19,7 +19,6 @@ module.exports = {
   },
 
   onStart: async function ({ message, event, api }) {
-    const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
     if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
     }

@@ -9,7 +9,7 @@ module.exports.config = {
   name: "dalle3",
   version: "1.7",
   role: 0,
-  author: "MahMUD",
+  author: "Rakib",
   category: "Image gen",
   guide: "{pn} [prompt]",
   countDown: 10

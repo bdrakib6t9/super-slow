@@ -18,7 +18,7 @@ module.exports.config = {
   name: "flux",
   version: "1.7",
   role: 0,
-  author: "MahMUD",
+  author: "Rakib",
   description: "Flux Image Generator with random seed",
   category: "Image gen",
   guide: "{pn} [prompt]",
@@ -26,7 +26,6 @@ module.exports.config = {
 };
 
 module.exports.onStart = async ({ event, args, api }) => {
-  const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
     if (module.exports.config.author !== obfuscatedAuthor) {
     return api.sendMessage("You are not authorized to change the author name.\n", event.threadID, event.messageID);
     }

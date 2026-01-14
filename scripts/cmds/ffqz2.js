@@ -15,7 +15,7 @@ module.exports = {
     name: "ffqz2",
     aliases: ["ffquiz2","freefire2", "freefireqz2"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 10,
     role: 0,
     category: "game",
@@ -26,7 +26,6 @@ module.exports = {
 
   onStart: async function ({ api, event, usersData, args }) {
     try {
-      const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
      if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage("You are not authorized to change the author name.\n", event.threadID, event.messageID);
     }

@@ -9,7 +9,7 @@ module.exports = {
   config: {
     name: "caption",
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 5,
     category: "love"
   },

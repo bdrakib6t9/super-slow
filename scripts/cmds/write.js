@@ -12,7 +12,7 @@ module.exports = {
     name: "write",
     aliases: ["wr"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 5,
     role: 0,
     category: "image",
@@ -22,7 +22,6 @@ module.exports = {
 
   onStart: async function ({ api, event, args }) {
     const { threadID, messageID } = event;    
-    const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
     if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage(
         "❌ | You are not authorized to use this command.",

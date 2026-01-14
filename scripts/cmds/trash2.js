@@ -16,7 +16,7 @@ module.exports = {
   config: {
     name: "trash2",
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     role: 0,
     category: "fun",
     cooldown: 10,

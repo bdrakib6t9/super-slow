@@ -5,14 +5,13 @@ const baseApiUrl = async () => {
   return base.data.mahmud;
 };
 
-const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
 
 module.exports = {
   config: {
     name: "waifugame",
     aliases: ["waifu"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 10,
     role: 0,
     category: "game",

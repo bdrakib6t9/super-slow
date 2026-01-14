@@ -18,7 +18,7 @@ module.exports = {
     aliases: ["ffvid", "freefirevideo"],
     version: "1.7",
     role: 0,
-    author: "MahMUD",
+    author: "Rakib",
     category: "media",
     guide: {
       en: "Use {pn} to get a random Free Fire video."

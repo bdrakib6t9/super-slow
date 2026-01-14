@@ -10,7 +10,7 @@ module.exports = {
     name: "profile",
     aliases: ["pp", "dp", "pfp"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     role: 0,
     category: "media",
     guide: {
@@ -20,7 +20,6 @@ module.exports = {
   },
 
   onStart: async function ({ event, message, usersData, args }) {
-   const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
 if (module.exports.config.author !== obfuscatedAuthor) {
 return api.sendMessage(
 "❌ | You are not authorized to change the author name.",

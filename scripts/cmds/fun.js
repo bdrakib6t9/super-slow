@@ -19,7 +19,7 @@ config: {
 name: "fun",
 aliases: ["dig", "funny"],
 version: "1.7",
-author: "MahMUD",
+author: "Rakib",
 role: 0,
 category: "fun",
 cooldown: 10,
@@ -27,7 +27,6 @@ guide: "[type] [mention/reply/UID] | type 'list' to see all types",
 },
 
 onStart: async function({ api, event, args }) {
- const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
  if (module.exports.config.author !== obfuscatedAuthor) {
  return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
  }

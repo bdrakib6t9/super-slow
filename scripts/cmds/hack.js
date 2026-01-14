@@ -15,7 +15,7 @@ const mahmhd = async () => {
 module.exports = {
   config: {
     name: "hack",
-    author: "MahMUD",
+    author: "Rakib",
     version: "1.7",
     role: 0,
     countDown: 5,
@@ -24,7 +24,6 @@ module.exports = {
   },
 
   onStart: async function ({ args, api, event }) {
-    const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
     if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage(
         "❌ | You are not authorized to change the author name.",

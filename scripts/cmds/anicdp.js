@@ -12,7 +12,7 @@ module.exports = {
     name: "anicdp",
     aliases: ["animecdp"],
     version: "1.7",
-    author: "MahMUD",
+    author: "Rakib",
     countDown: 5,
     role: 0,
     category: "media",
@@ -20,7 +20,6 @@ module.exports = {
   },
 
   onStart: async function ({ message }) {
-    const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68); 
     if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
     }

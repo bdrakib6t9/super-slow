@@ -8,13 +8,12 @@ const axios = require("axios");
 module.exports = {
   config: {
     name: "imgur",
-    author: "MahMUD",
+    author: "Rakib",
     version: "1.7",
     category: "media"
   },
   onStart: async function ({ api, event }) {
     try {
-       const obfuscatedAuthor = String.fromCharCode(77, 97, 104, 77, 85, 68);
       if (this.config.author !== obfuscatedAuthor) {
         return api.sendMessage(
           "You are not authorized to change the author name.\n\nPlease author fix name to work with this cmd",
