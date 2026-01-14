@@ -53,7 +53,7 @@ module.exports = {
 	config: {
 		name: "vip",
 		version: "1.1",
-		author: "Aryan Chauhan (fixed)",
+		author: "Rakib",
 		role: 2,
 		category: "Config",
 		guide: {
