@@ -3,7 +3,7 @@ module.exports = {
 		name: "game-top",
 		aliases: ["gmtop", "gametop"],
 		version: "1.0",
-		author: "Rakib+ChatGPT",
+		author: "Rakib",
 		role: 0,
 		category: "game",
 		countDown: 5
