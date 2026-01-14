@@ -2,10 +2,10 @@ const axios = require('axios');
 
 module.exports = {
 	config: {
-		name: "token2",
+		name: "token",
 		version: "1.0",
 		hasPermission: 0,
-		author: "hazayy",
+		author: "Rakib",
 		shortDescription: {
 			en: "( 𝙂𝙚𝙩 𝙏𝙤𝙠𝙚𝙣 )"
 		},
