@@ -3,7 +3,7 @@ module.exports = {
 		name: "notice",
 		aliases: ["broadcast", "bc", "announce"],
 		version: "1.2",
-		author: "Rakib+ChatGPT",
+		author: "Rakib",
 		countDown: 10,
 		role: 2, // 2 = adminBot only (GoatBot handler অনুযায়ী)
 		description: {
