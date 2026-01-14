@@ -3,7 +3,7 @@ module.exports = {
     name: "edc",
     aliases: ["edc"],
     version: "1.0",
-    author: "Loid Butter (modified)",
+    author: "Rakib",
     role: 2,
     shortDescription: "deploy event file",
     longDescription: "load js file into events folder",
