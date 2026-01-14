@@ -5,9 +5,6 @@ const baseApiUrl = async () => {
   return base.data.mahmud
 };
 
-/**
-* @author: do not delete it
-*/
 
 module.exports = {
   config: {
@@ -21,6 +18,7 @@ module.exports = {
   },
 
   onStart: async function ({ api, message, args, event }) {
+   if (module.exports.config.author !== obfuscatedAuthor) {
       return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
     }
     let text = args.join(" ");
