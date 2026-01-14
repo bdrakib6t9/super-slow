@@ -7,7 +7,7 @@ module.exports = {
     name: "accept",
     aliases: ["acp"],
     version: "1.1",
-    author: "Loid Butter (Modified)",
+    author: "Rakib",
     countDown: 8,
     role: 2,
     shortDescription: "Accept/Delete friend requests (Owner only)",
