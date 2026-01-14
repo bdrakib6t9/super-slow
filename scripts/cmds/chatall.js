@@ -11,7 +11,7 @@ module.exports = {
         name: "chatall",
         aliases: ["callfail", "chattop", "chatstat"],
         version: "1.1",
-        author: "Rakib+ChatGPT",
+        author: "Rakib",
         countDown: 5,
         role: 0,
         description: "Show top message senders in this chat (top 20) with time filters",
