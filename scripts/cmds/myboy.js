@@ -7,7 +7,6 @@ const baseApiUrl = async () => {
 };
 
 /**
-* @author MahMUD
 * @author: do not delete it
 */
 

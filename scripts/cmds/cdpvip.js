@@ -8,7 +8,6 @@ const mahmud = async () => {
 };
 
 /**
-* @author MahMUD
 * @author: do not delete it
 */
 

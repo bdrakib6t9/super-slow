@@ -8,7 +8,6 @@ const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/
 };
 
 /**
-* @author MahMUD
 * @author: do not delete it
 */
 

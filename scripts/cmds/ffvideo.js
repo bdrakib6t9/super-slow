@@ -8,7 +8,6 @@ const response = await axios.get("https://raw.githubusercontent.com/mahmudx7/HIN
 };
 
 /**
-* @author MahMUD
 * @author: do not delete it
 */
 

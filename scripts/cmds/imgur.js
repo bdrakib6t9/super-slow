@@ -1,7 +1,6 @@
 const axios = require("axios");
 
 /**
-* @author MahMUD
 * @author: do not delete it
 */
 
