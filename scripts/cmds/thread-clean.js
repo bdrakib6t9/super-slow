@@ -3,7 +3,7 @@ module.exports = {
 		name: "thread-clean",
 		aliases: ["thdclean"],
 		version: "1.1",
-		author: "Custom",
+		author: "Rakib",
 		role: 2,
 		category: "owner",
 		shortDescription: {
