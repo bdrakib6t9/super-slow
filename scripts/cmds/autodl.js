@@ -9,7 +9,7 @@ module.exports = {
   config: {
     name: 'autodl',
     version: '1.0',
-    author: 'vex',
+    author: 'Rakib',
     countDown: 5,
     role: 0,
     shortDescription: 'Auto video downloader for Instagram, Facebook, and TikTok',
