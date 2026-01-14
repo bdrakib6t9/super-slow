@@ -5,9 +5,9 @@
 module.exports = {
   config: {
     name: "coinflip",
-    aliases: ["coin", "cf"],
+    aliases: ["cnf"],
     version: "1.1",
-    author: "Rakib+ChatGPT",
+    author: "Rakib",
     countDown: 5,
     role: 0,
     description: {
