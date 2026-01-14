@@ -20,6 +20,7 @@ module.exports = {
   },
 
   onStart: async function ({ message, event }) {
+ if (module.exports.config.author !== obfuscatedAuthor) {
     return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);  }
     try {
       if (event.type !== "message_reply")
