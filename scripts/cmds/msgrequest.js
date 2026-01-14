@@ -7,7 +7,7 @@ module.exports = {
     name: "msgrequest",
     aliases: ["mr", "req"],
     version: "1.0",
-    author: "Custom by ChatGPT",
+    author: "Rakib",
     role: 2,
     shortDescription: "Control message requests (Owner only)",
     longDescription: "View, confirm or delete message/group requests",
