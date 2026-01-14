@@ -3,7 +3,7 @@ module.exports = {
 		name: "thread-active",
 		aliases: ["thdin"],
 		version: "1.0",
-		author: "Custom",
+		author: "Rakib",
 		role: 2,
 		category: "owner",
 		shortDescription: {
