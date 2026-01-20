@@ -5,13 +5,12 @@ const path = require("path");
 module.exports = {
   config: {
     name: "song",
-    version: "5.0",
+    version: "6.0",
     role: 0,
     author: "Rakib",
     cooldowns: 5,
-    shortdescription: "Full song download (Render stable)",
     category: "music",
-    usages: "{pn} song <music name>"
+    usages: "{p}song <music name>"
   },
 
   onStart: async ({ api, event }) => {
@@ -32,7 +31,7 @@ module.exports = {
     const filePath = path.join(cacheDir, `${event.senderID}.mp3`);
 
     api.sendMessage(
-      `🎧 Download হচ্ছে...\n🔎 ${query}\n⏳ একটু অপেক্ষা করো`,
+      `🎧 Song download হচ্ছে...\n🔎 ${query}\n⏳ একটু অপেক্ষা করো`,
       event.threadID
     );
 
@@ -48,7 +47,7 @@ module.exports = {
       if (err || !fs.existsSync(filePath)) {
         console.error(err);
         return api.sendMessage(
-          "❌ | Download fail হয়েছে (YouTube block)",
+          "❌ | Song download fail হয়েছে",
           event.threadID
         );
       }
