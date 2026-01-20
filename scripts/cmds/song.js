@@ -1,54 +1,74 @@
-const axios = require("axios");
-
-const mahmud = async () => {
-  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
-  return base.data.mahmud;
-};
+const { exec } = require("child_process");
+const fs = require("fs-extra");
+const path = require("path");
 
 module.exports = {
-    config: {
-        name: "song",
-        version: "1.7",
-        author: "Rakib", 
-        countDown: 10,
-        role: 0,
-        category: "music",
-        guide: "{p}sing [song name]"
-    },
+  config: {
+    name: "song",
+    version: "5.0",
+    role: 0,
+    author: "Rakib",
+    cooldowns: 5,
+    shortdescription: "Full song download (Render stable)",
+    category: "music",
+    usages: "{pn} song <music name>"
+  },
 
-    onStart: async function ({ api, event, args, message }) {
-        if (args.length === 0) {
-            return message.reply("❌ | Please provide a song name\n\nExample: sing mood lofi");
-        }
-
-        try {
-            const query = encodeURIComponent(args.join(" "));
-            const apiUrl = `${await mahmud()}/api/sing2?songName=${query}`;
-
-            const response = await axios.get(apiUrl, {
-                responseType: "stream",
-                headers: { "author": module.exports.config.author }
-            });
-
-            if (response.data.error) {
-                return message.reply(`${response.data.error}`);
-            }
-
-            message.reply({
-                body: `✅ | 𝐇𝐞𝐫𝐞'𝐬 𝐲𝐨𝐮𝐫 𝐬𝐨𝐧𝐠: ${args.join(" ")}`,
-                attachment: response.data
-            });
-
-        } catch (error) {
-            console.error("Error:", error.message);
-
-            if (error.response) {
-                console.error("Response error data:", error.response.data);
-                console.error("Response status:", error.response.status);
-                return message.reply(`${error.response.data.error || error.message}`);
-            }
-
-            message.reply("error🥺");
-        }
+  onStart: async ({ api, event }) => {
+    const args = event.body.split(" ");
+    if (args.length < 2) {
+      return api.sendMessage(
+        "❌ | ব্যবহার:\n song <গানের নাম>",
+        event.threadID
+      );
     }
+
+    args.shift();
+    const query = args.join(" ");
+
+    const cacheDir = path.join(__dirname, "cache");
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
+    const filePath = path.join(cacheDir, `${event.senderID}.mp3`);
+
+    api.sendMessage(
+      `🎧 Download হচ্ছে...\n🔎 ${query}\n⏳ একটু অপেক্ষা করো`,
+      event.threadID
+    );
+
+    const command = `
+      yt-dlp "ytsearch1:${query}" \
+      -x --audio-format mp3 \
+      --audio-quality 0 \
+      --no-playlist \
+      -o "${filePath}"
+    `;
+
+    exec(command, (err) => {
+      if (err || !fs.existsSync(filePath)) {
+        console.error(err);
+        return api.sendMessage(
+          "❌ | Download fail হয়েছে (YouTube block)",
+          event.threadID
+        );
+      }
+
+      if (fs.statSync(filePath).size > 25 * 1024 * 1024) {
+        fs.unlinkSync(filePath);
+        return api.sendMessage(
+          "❌ | গানটি 25MB এর বেশি",
+          event.threadID
+        );
+      }
+
+      api.sendMessage(
+        {
+          body: `🎵 ${query}`,
+          attachment: fs.createReadStream(filePath)
+        },
+        event.threadID,
+        () => fs.unlinkSync(filePath)
+      );
+    });
+  }
 };
