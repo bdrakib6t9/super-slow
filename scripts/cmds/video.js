@@ -5,20 +5,19 @@ const path = require("path");
 module.exports = {
   config: {
     name: "video",
-    version: "1.0",
+    version: "2.0",
     role: 0,
     author: "Rakib",
     cooldowns: 5,
-    shortdescription: "Download YouTube video (Render)",
     category: "media",
-    usages: "{pn} video <youtube link / name>"
+    usages: "{p}video <youtube name/link>"
   },
 
   onStart: async ({ api, event }) => {
     const args = event.body.split(" ");
     if (args.length < 2) {
       return api.sendMessage(
-        "❌ | ব্যবহার:\nvideo <youtube link বা নাম>",
+        "❌ | ব্যবহার:\n video <youtube নাম বা লিংক>",
         event.threadID
       );
     }
@@ -32,15 +31,15 @@ module.exports = {
     const filePath = path.join(cacheDir, `${event.senderID}.mp4`);
 
     api.sendMessage(
-      `🎥 Video download হচ্ছে...\n⏳ একটু অপেক্ষা করো`,
+      `🎥 Video download হচ্ছে...\n🔎 ${query}\n⏳ একটু অপেক্ষা করো`,
       event.threadID
     );
 
-    // 🔥 yt-dlp video (low size)
     const command = `
       yt-dlp "ytsearch1:${query}" \
       -f "mp4[filesize_approx<=25M]/mp4" \
       --merge-output-format mp4 \
+      --no-playlist \
       -o "${filePath}"
     `;
 
