@@ -1,49 +1,136 @@
-const axios = require("axios");
+const { getStreamFromURL } = global.utils;
+const Jimp = require("jimp");
+const { Readable } = require("stream");
 const fs = require("fs");
 const path = require("path");
 
-const baseApiUrl = async () => {
-  const base = await axios.get("https://raw.githubusercontent.com/mahmudx7/HINATA/main/baseApiUrl.json");
-  return base.data.mahmud;
-};
-
 /**
-* @author: do not delete it
-*/
+ * @author Rakib
+ * Ads command (API FREE + AUTO CACHE)
+ */
+
+// 🔥 auto-cache ad overlay
+async function getAdOverlay() {
+  const cacheDir = path.join(__dirname, "cache");
+  const filePath = path.join(cacheDir, "ad.png");
+
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+
+  // আগে থেকেই থাকলে সেটাই নেবে
+  if (fs.existsSync(filePath)) {
+    return filePath;
+  }
+
+  // না থাকলে এখান থেকে একবার নামাবে
+  const url = "https://i.imgur.com/Q4JZJ9k.png"; // sample ad/tv overlay
+
+  const stream = await getStreamFromURL(url);
+
+  await new Promise((resolve, reject) => {
+    const write = fs.createWriteStream(filePath);
+    stream.pipe(write);
+    stream.on("error", reject);
+    write.on("finish", resolve);
+    write.on("error", reject);
+  });
+
+  return filePath;
+}
 
 module.exports = {
   config: {
     name: "ads",
-    version: "1.7",
+    version: "2.0",
     author: "Rakib",
     role: 0,
     category: "fun",
     cooldown: 10,
-    guide: "ad [mention/reply/UID]",
+    guide: "{prefix}ads @mention | reply | UID"
   },
 
-  onStart: async function ({ api, event, args }) {
- const obfuscatedAuthor = String.fromCharCode(82, 97, 107, 105, 98);
-    if (module.exports.config.author !== obfuscatedAuthor)
-      return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
-
-    const { threadID, messageID, messageReply, mentions } = event;
-    let id2 = messageReply?.senderID || Object.keys(mentions)[0] || args[0];
-    if (!id2) return api.sendMessage("Mention, reply, or provide UID of the target.", threadID, messageID);
+  onStart: async function ({ event, message, usersData }) {
+    // 🔒 author lock
+    const obfuscatedAuthor = String.fromCharCode(82, 97, 107, 105, 98);
+    if (module.exports.config.author !== obfuscatedAuthor) {
+      return message.reply("You are not authorized to change the author name.");
+    }
 
     try {
-      const url = `${await baseApiUrl()}/api/dig?type=ad&user=${id2}`;
-      const img = await axios.get(url, { responseType: "arraybuffer" });
-      const file = path.join(__dirname, `ad_${id2}.png`);
-      fs.writeFileSync(file, img.data);
+      const { messageReply, mentions, args } = event;
 
-      api.sendMessage({
-        body: "Effect ad successful 📺",
-        attachment: fs.createReadStream(file)
-      }, threadID, () => fs.unlinkSync(file), messageID);
+      // -------------------------
+      // TARGET SYSTEM
+      // -------------------------
+      let targetID = null;
 
-    } catch {
-      api.sendMessage("🥹 Error, contact Hoon.", threadID, messageID);
+      if (messageReply) {
+        targetID = messageReply.senderID;
+      } else if (mentions && Object.keys(mentions).length > 0) {
+        targetID = Object.keys(mentions)[0];
+      } else if (args[0]) {
+        targetID = args[0];
+      }
+
+      if (!targetID) {
+        return message.reply("❌ Mention, reply, or provide UID of the target.");
+      }
+
+      // -------------------------
+      // USER DATA
+      // -------------------------
+      const name = await usersData.getName(targetID).catch(() => "User");
+      const avatarUrl = await usersData.getAvatarUrl(targetID).catch(() => null);
+
+      if (!avatarUrl) {
+        return message.reply("❌ User avatar not found.");
+      }
+
+      // helper: stream → buffer
+      const streamToBuffer = (stream) =>
+        new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on("data", c => chunks.push(c));
+          stream.on("end", () => resolve(Buffer.concat(chunks)));
+          stream.on("error", reject);
+        });
+
+      // -------------------------
+      // LOAD AVATAR
+      // -------------------------
+      const avatarStream = await getStreamFromURL(avatarUrl);
+      const avatarBuffer = await streamToBuffer(avatarStream);
+      let avatar = await Jimp.read(avatarBuffer);
+      avatar = avatar.resize(500, 500);
+
+      // -------------------------
+      // LOAD AD OVERLAY (AUTO CACHE)
+      // -------------------------
+      const adPath = await getAdOverlay();
+      const ad = await Jimp.read(adPath);
+      ad.resize(500, 500);
+
+      // -------------------------
+      // COMPOSITE
+      // -------------------------
+      avatar.composite(ad, 0, 0);
+
+      // -------------------------
+      // EXPORT
+      // -------------------------
+      const outBuffer = await avatar.getBufferAsync(Jimp.MIME_PNG);
+      const imgStream = Readable.from(outBuffer);
+      imgStream.path = "ads.png";
+
+      return message.reply({
+        body: `📺 ${name} is now on Ads!`,
+        attachment: imgStream
+      });
+
+    } catch (err) {
+      console.error("ADS ERROR:", err);
+      return message.reply("🥹 Ads command failed. please contact TESSA");
     }
   }
 };
