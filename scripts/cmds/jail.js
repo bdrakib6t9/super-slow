@@ -1,49 +1,16 @@
 const { getStreamFromURL } = global.utils;
 const Jimp = require("jimp");
 const { Readable } = require("stream");
-const fs = require("fs");
-const path = require("path");
-const axios = require("axios");
 
 /**
  * @author Rakib
- * Jail command (API FREE + AUTO CACHE)
+ * Jail command – PURE JIMP (no external image)
  */
-
-async function getJailOverlay() {
-  const cacheDir = path.join(__dirname, "cache");
-  const filePath = path.join(cacheDir, "jail.png");
-
-  if (!fs.existsSync(cacheDir)) {
-    fs.mkdirSync(cacheDir, { recursive: true });
-  }
-
-  // আগেই থাকলে লোকালটাই নেবে
-  if (fs.existsSync(filePath)) {
-    return filePath;
-  }
-
-  // Imgur থেকে stream দিয়ে নামাবে
-  const url = "https://i.imgur.com/4M34hi2.png";
-
-  const stream = await getStreamFromURL(url);
-
-  await new Promise((resolve, reject) => {
-    const write = fs.createWriteStream(filePath);
-    stream.pipe(write);
-    stream.on("error", reject);
-    write.on("finish", resolve);
-    write.on("error", reject);
-  });
-
-  return filePath;
-}
 
 module.exports = {
   config: {
     name: "jail",
-    aliases: [],
-    version: "3.0",
+    version: "4.0",
     author: "Rakib",
     role: 0,
     category: "fun",
@@ -53,20 +20,15 @@ module.exports = {
 
   onStart: async function ({ event, message, usersData }) {
     try {
-      const { senderID, messageReply, mentions, args } = event;
+      const { messageReply, mentions, args } = event;
 
       // -------------------------
-      // TARGET SYSTEM
+      // TARGET
       // -------------------------
-      let targetID = null;
-
-      if (messageReply) {
-        targetID = messageReply.senderID;
-      } else if (mentions && Object.keys(mentions).length > 0) {
-        targetID = Object.keys(mentions)[0];
-      } else if (args[0]) {
-        targetID = args[0];
-      }
+      let targetID =
+        messageReply?.senderID ||
+        Object.keys(mentions || {})[0] ||
+        args[0];
 
       if (!targetID) {
         return message.reply("❌ কাউকে reply / mention / UID দিন।");
@@ -75,15 +37,15 @@ module.exports = {
       // -------------------------
       // USER DATA
       // -------------------------
-      let name = await usersData.getName(targetID).catch(() => "User");
-      let avatarUrl = await usersData.getAvatarUrl(targetID).catch(() => null);
+      const name = await usersData.getName(targetID).catch(() => "User");
+      const avatarUrl = await usersData.getAvatarUrl(targetID).catch(() => null);
 
       if (!avatarUrl) {
-        return message.reply("❌ ইউজারের avatar পাওয়া যায়নি।");
+        return message.reply("❌ Avatar পাওয়া যায়নি।");
       }
 
       // -------------------------
-      // HELPER: stream → buffer
+      // STREAM → BUFFER
       // -------------------------
       const streamToBuffer = (stream) =>
         new Promise((resolve, reject) => {
@@ -93,41 +55,53 @@ module.exports = {
           stream.on("error", reject);
         });
 
-      // -------------------------
-      // LOAD AVATAR
-      // -------------------------
       const avatarStream = await getStreamFromURL(avatarUrl);
       const avatarBuffer = await streamToBuffer(avatarStream);
-      let avatar = await Jimp.read(avatarBuffer);
-      avatar = avatar.resize(500, 500);
 
       // -------------------------
-      // LOAD JAIL OVERLAY (AUTO CACHE)
+      // BASE IMAGE
       // -------------------------
-      const jailPath = await getJailOverlay();
-      const jail = await Jimp.read(jailPath);
-      jail.resize(500, 500);
+      let img = await Jimp.read(avatarBuffer);
+      img.resize(500, 500).grayscale().contrast(0.2);
 
       // -------------------------
-      // COMPOSITE
+      // DRAW JAIL BARS (PURE JIMP)
       // -------------------------
-      avatar.composite(jail, 0, 0);
+      const barColor = Jimp.rgbaToInt(0, 0, 0, 180);
+      const barWidth = 18;
+      const gap = 45;
+
+      for (let x = 0; x < img.bitmap.width; x += gap) {
+        for (let y = 0; y < img.bitmap.height; y++) {
+          for (let w = 0; w < barWidth; w++) {
+            img.setPixelColor(barColor, x + w, y);
+          }
+        }
+      }
+
+      // top & bottom bars
+      img.scan(0, 0, img.bitmap.width, 25, (_, __, idx) => {
+        img.bitmap.data.writeUInt32BE(barColor, idx);
+      });
+      img.scan(0, img.bitmap.height - 25, img.bitmap.width, 25, (_, __, idx) => {
+        img.bitmap.data.writeUInt32BE(barColor, idx);
+      });
 
       // -------------------------
       // EXPORT
       // -------------------------
-      const outBuffer = await avatar.getBufferAsync(Jimp.MIME_PNG);
-      const imgStream = Readable.from(outBuffer);
-      imgStream.path = "jail.png";
+      const outBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
+      const stream = Readable.from(outBuffer);
+      stream.path = "jail.png";
 
       return message.reply({
         body: `🚔 ${name} এখন জেলে 🔒`,
-        attachment: imgStream
+        attachment: stream
       });
 
     } catch (err) {
-      console.error(err);
-      return message.reply("❌ Jail command failed. api error please contact tessa");
+      console.error("JAIL FINAL ERROR:", err);
+      return message.reply("❌ Jail command failed, lagau msg TESSA ke.");
     }
   }
 };
