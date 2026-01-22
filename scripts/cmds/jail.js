@@ -14,20 +14,27 @@ async function getJailOverlay() {
   const cacheDir = path.join(__dirname, "cache");
   const filePath = path.join(cacheDir, "jail.png");
 
-  // cache folder না থাকলে বানাবে
   if (!fs.existsSync(cacheDir)) {
     fs.mkdirSync(cacheDir, { recursive: true });
   }
 
-  // আগেই ডাউনলোড থাকলে সেটাই রিটার্ন
+  // আগেই থাকলে লোকালটাই নেবে
   if (fs.existsSync(filePath)) {
     return filePath;
   }
 
-  // না থাকলে এখন ডাউনলোড করবে (Imgur)
+  // Imgur থেকে stream দিয়ে নামাবে
   const url = "https://i.imgur.com/4M34hi2.png";
-  const res = await axios.get(url, { responseType: "arraybuffer" });
-  fs.writeFileSync(filePath, res.data);
+
+  const stream = await getStreamFromURL(url);
+
+  await new Promise((resolve, reject) => {
+    const write = fs.createWriteStream(filePath);
+    stream.pipe(write);
+    stream.on("error", reject);
+    write.on("finish", resolve);
+    write.on("error", reject);
+  });
 
   return filePath;
 }
