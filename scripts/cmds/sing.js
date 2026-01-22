@@ -6,6 +6,7 @@ const mahmud = async () => {
 };
 
 /**
+* @author Rakib
 * @author: do not delete it
 */
 
@@ -17,20 +18,41 @@ module.exports = {
     countDown: 10,
     role: 0,
     category: "music",
-    guide: "{p}sing [song name]"
+    guide: {
+      en: "{pn} [song name]"
+    }
   },
 
   onStart: async function ({ api, event, args, message }) {
-    if (module.exports.config.author !== obfuscatedAuthor) {
-      return api.sendMessage("You are not authorized to change the author name.", event.threadID, event.messageID);
+    const _0x4b = (function () {
+      const _0xarr = [
+        'YXV0aG9y',
+        'Y29uZmln',
+        'WW91IGFyZSBub3QgYXV0aG9yaXplZCB0byBjaGFuZ2UgdGhlIGF1dGhvciBuYW1lLg==',
+        '4p6eIHwgUGxlYXNlIHByb3ZpZGUgYSBzb25nIG5hbWUuXG5cbkV4YW1wbGU6IHNpbmcgIHNoYXBlIG9mIHlvdQ==',
+        'cmVwbHk=',
+        'c2VuZE1lc3NhZ2U=',
+        '4pyFIHwgSGVyZSdzIHlvdXIgcmVxdWVzdGVkIHNvbmc6XG7inp4g',
+        'ZXJyb3IsIGNvbnRhY3QgdGVzc2E='
+      ];
+      return function (_0xi) {
+        return Buffer.from(_0xarr[_0xi], 'base64').toString();
+      };
+    })();
+
+    // Rakib → ASCII
+    const _0xauth = String.fromCharCode(82, 97, 107, 105, 98);
+
+    if (this.config.author !== _0xauth) {
+      return api[_0x4b(5)](_0x4b(2), event.threadID, event.messageID);
     }
-    
+
     if (!args[0]) {
-      return message.reply("❌ | Please provide a song name.\n\nExample: sing shape of you");
+      return message[_0x4b(4)](_0x4b(3));
     }
 
     const query = encodeURIComponent(args.join(" "));
-    const apiUrl = `${await mahmud()}/api/song?query=${query}`;
+    const apiUrl = `${await mahmud()}/api/song/mahmud?query=${query}`;
 
     try {
       api.setMessageReaction("⌛", event.messageID, () => {}, true);
@@ -41,15 +63,15 @@ module.exports = {
         responseType: "stream"
       });
 
-      message.reply({
-        body: `✅ | Here's your requested song:\n➡️ ${args.join(" ")}`,
+      message[_0x4b(4)]({
+        body: _0x4b(6) + args.join(" "),
         attachment: response.data
       }, () => {
-        api.setMessageReaction("🐤", event.messageID, () => {}, true);
+        api.setMessageReaction("🪽", event.messageID, () => {}, true);
       });
 
-    } catch {
-      message.reply("🥹error, Contact tessa.");
+    } catch (e) {
+      message[_0x4b(4)](_0x4b(7)); // error, contact tessa
     }
   }
 };
