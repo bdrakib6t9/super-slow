@@ -1,4 +1,23 @@
-node_modules
+# ===============================
+# Node / npm
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===============================
+# Facebook AppState / Cookies (CRITICAL)
+# ===============================
+account.txt
+account.json
+appstate.json
+*.cookie.txt
+*.cookie.json
+
+# ===============================
+# Goat Bot / FCA dev files
+# ===============================
 fb-chat-api.dev
 obfcode.js
 minify.js
@@ -6,16 +25,27 @@ backupOrigin.js
 createVersion.js
 createVersionAndCommit.js
 checkOriginCodeChanged.js
+
+# ===============================
+# Archives / temp / test
+# ===============================
 *.zip
-*.dev.*
 *.rar
+*.7z
+*.dev.*
 *test.*
 *.test.*
 test.js
 
+# ===============================
+# Database
+# ===============================
 database/data/*
 !database/data/.gitkeep
 
+# ===============================
+# Commands / Events temp
+# ===============================
 scripts/cmds/tmp/*
 !scripts/cmds/tmp/.gitkeep
 scripts/cmds/assets/guide
@@ -25,3 +55,11 @@ scripts/events/tmp/*
 scripts/events/data/leaveAttachment
 scripts/events/data/welcomeAttachment
 !scripts/events/tmp/.gitkeep
+
+# ===============================
+# OS / Editor
+# ===============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
