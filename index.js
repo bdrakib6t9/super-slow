@@ -20,34 +20,6 @@
 const { spawn } = require("child_process");
 const log = require("./logger/log.js");
 
-/* =========================
-   GLOBAL NETWORK ERROR GUARD
-   (SAFE – DOES NOT TOUCH CORE)
-========================= */
-process.on("uncaughtException", err => {
-	if (
-		err?.code === "ECONNRESET" ||
-		String(err).includes("ECONNRESET")
-	) {
-		log.warn("⚠️ ECONNRESET ignored (network issue)");
-		return;
-	}
-	log.err("UNCAUGHT_EXCEPTION", err);
-});
-
-process.on("unhandledRejection", err => {
-	if (
-		err?.code === "ECONNRESET" ||
-		String(err).includes("ECONNRESET")
-	) {
-		log.warn("⚠️ ECONNRESET ignored (network issue)");
-		return;
-	}
-	log.err("UNHANDLED_REJECTION", err);
-});
-
-/* ========================= */
-
 function startProject() {
 	const child = spawn("node", ["Goat.js"], {
 		cwd: __dirname,
