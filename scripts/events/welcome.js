@@ -10,7 +10,7 @@ module.exports = {
 	config: {
 		name: "welcome",
 		version: "2.1",
-		author: "NTKhang + Premium Edit",
+		author: "NTKhang + Premium Edit (Fixed)",
 		category: "events"
 	},
 
@@ -28,11 +28,11 @@ module.exports = {
    🎉  𝐖𝐄𝐋𝐂𝐎𝐌𝐄  🎉  
 ╚══════════════════════╝  
 
-👋 𝐇𝐞𝐥𝐥𝐨 {𝐮𝐬𝐞𝐫𝐍𝐚𝐦𝐞}  
-✨ 𝐖𝐞𝐥𝐜𝐨𝐦𝐞 𝐭𝐨 **{𝐛𝐨𝐱𝐍𝐚𝐦𝐞}**  
+👋 𝐇𝐞𝐥𝐥𝐨 {userName}  
+✨ 𝐖𝐞𝐥𝐜𝐨𝐦𝐞 𝐭𝐨 **{boxName}**  
 
-🔢 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐭𝐡𝐞 **{𝐦𝐞𝐦𝐛𝐞𝐫𝐂𝐨𝐮𝐧𝐭}𝐭𝐡** 𝐦𝐞𝐦𝐛𝐞𝐫  
-🕒 𝐇𝐚𝐯𝐞 𝐚 𝐰𝐨𝐧𝐝𝐞𝐫𝐟𝐮𝐥 {𝐬𝐞𝐬𝐬𝐢𝐨𝐧}  
+🔢 𝐘𝐨𝐮 𝐚𝐫𝐞 𝐭𝐡𝐞 **{memberCount}𝐭𝐡** 𝐦𝐞𝐦𝐛𝐞𝐫  
+🕒 𝐇𝐚𝐯𝐞 𝐚 𝐰𝐨𝐧𝐝𝐞𝐫𝐟𝐮𝐥 {session}  
 
 💖 𝐄𝐧𝐣𝐨𝐲 𝐲𝐨𝐮𝐫 𝐬𝐭𝐚𝐲 & 𝐛𝐞 𝐟𝐫𝐢𝐞𝐧𝐝𝐥𝐲!`
 		}
@@ -61,7 +61,7 @@ module.exports = {
 
 			const threadInfo = await api.getThreadInfo(threadID);
 			const memberCount = threadInfo.participantIDs.length;
-			const threadName = threadData.threadName;
+			const threadName = threadData.threadName || "this group";
 
 			const userNames = [];
 			const mentions = [];
