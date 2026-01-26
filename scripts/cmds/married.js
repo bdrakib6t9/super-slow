@@ -5,37 +5,49 @@ module.exports = {
   config: {
     name: "married",
     aliases: ["mrd"],
-    version: "2.0",
+    version: "2.1",
     author: "Rakib",
     countDown: 5,
     role: 0,
     shortDescription: "get married",
-    longDescription: "mention your love",
+    longDescription: "mention or reply your love",
     category: "love",
-    guide: "{pn} @mention"
+    guide: "{pn} @mention | reply + {pn}"
   },
 
   onStart: async function ({ message, event }) {
-    const mention = Object.keys(event.mentions);
-    if (mention.length === 0) {
-      return message.reply("❌ Please mention someone ❗");
+    const senderID = event.senderID;
+
+    // ✅ target (mention OR reply)
+    let targetID = Object.keys(event.mentions || {})[0];
+    if (!targetID && event.messageReply) {
+      targetID = event.messageReply.senderID;
     }
 
-    let one, two;
-    if (mention.length === 1) {
-      one = event.senderID;
-      two = mention[0];
-    } else {
-      one = mention[1];
-      two = mention[0];
+    // ❌ no target
+    if (!targetID) {
+      return message.reply("❌ Please mention or reply to someone ❗");
+    }
+
+    let one = senderID;
+    let two = targetID;
+
+    // old behaviour if 2 mentions
+    const mentions = Object.keys(event.mentions || {});
+    if (mentions.length >= 2) {
+      one = mentions[1];
+      two = mentions[0];
     }
 
     const path = await makeMarriedImage(one, two);
 
-    return message.reply({
-      body: getRandomMarriedText(),
-      attachment: fs.createReadStream(path)
-    });
+    return message.reply(
+      {
+        body: getRandomMarriedText(),
+        attachment: fs.createReadStream(path)
+      },
+      () => fs.unlinkSync(path)
+    );
   }
 };
 
@@ -81,4 +93,4 @@ function getRandomMarriedText() {
   ];
 
   return texts[Math.floor(Math.random() * texts.length)];
-}
+  }
