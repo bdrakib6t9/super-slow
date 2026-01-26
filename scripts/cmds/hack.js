@@ -10,7 +10,7 @@ module.exports = {
     role: 2,
     category: "fun",
     shortDescription: {
-      en: "Generates a 'hacking' image with the user's profile picture."
+      en: "Generates a 'hacking' image (mention or reply)"
     }
   },
 
@@ -51,36 +51,44 @@ module.exports = {
   },
 
   onStart: async function ({ api, event }) {
-    const pathImg = __dirname + "/tmp/background.png";
-    const pathAvt = __dirname + "/tmp/avatar.png";
+    const pathImg = __dirname + "/tmp/hack_bg.png";
+    const pathAvt = __dirname + "/tmp/hack_avt.png";
 
-    const id = Object.keys(event.mentions)[0] || event.senderID;
+    // ✅ target user (mention OR reply OR self)
+    let targetID = Object.keys(event.mentions || {})[0];
+    if (!targetID && event.messageReply) {
+      targetID = event.messageReply.senderID;
+    }
+    if (!targetID) {
+      targetID = event.senderID;
+    }
 
-    const userInfo = await api.getUserInfo(id);
-    const name = userInfo[id].name;
+    // user info
+    const userInfo = await api.getUserInfo(targetID);
+    const name = userInfo[targetID].name;
 
-    // 🔥 NEW BACKGROUND (Google Drive)
+    // 🔥 background
     const backgroundURL =
       "https://drive.google.com/uc?export=download&id=1pJgY4FAl1vwKs7eq9MPRVykFscZ6Mvjx";
 
     // avatar
     const avatarData = (
       await axios.get(
-        `https://graph.facebook.com/${id}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
+        `https://graph.facebook.com/${targetID}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
         { responseType: "arraybuffer" }
       )
     ).data;
 
     fs.writeFileSync(pathAvt, Buffer.from(avatarData));
 
-    // background
+    // background data
     const bgData = (
       await axios.get(backgroundURL, { responseType: "arraybuffer" })
     ).data;
 
     fs.writeFileSync(pathImg, Buffer.from(bgData));
 
-    // canvas
+    // canvas setup
     const baseImage = await loadImage(pathImg);
     const avatar = await loadImage(pathAvt);
 
@@ -97,7 +105,7 @@ module.exports = {
     const lines = await this.wrapText(ctx, name, 1160);
     ctx.fillText(lines.join("\n"), 200, 497);
 
-    // avatar position (same as before)
+    // avatar position
     ctx.drawImage(avatar, 83, 437, 100, 101);
 
     // export
