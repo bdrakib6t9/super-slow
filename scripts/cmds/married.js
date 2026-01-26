@@ -6,7 +6,7 @@ module.exports = {
     name: "married",
     aliases: ["mrd"],
     version: "2.0",
-    author: "LEARN TO EAT LEARN TO SPEAK BUT DON'T TRY TO CHANGE THE CREDIT AKASH",
+    author: "Rakib",
     countDown: 5,
     role: 0,
     shortDescription: "get married",
