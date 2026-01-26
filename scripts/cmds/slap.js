@@ -6,33 +6,38 @@ const path = require("path");
 module.exports = {
   config: {
     name: "slap",
-    version: "2.0",
-    author: "NTKhang + Rakib",
+    version: "2.1",
+    author: "Rakib",
     countDown: 5,
     role: 0,
     shortDescription: "Slap image",
-    longDescription: "Slap image (custom background)",
+    longDescription: "Slap image (mention or reply)",
     category: "image",
     guide: {
-      en: "{pn} @tag"
+      en: "{pn} @tag | reply + {pn}"
     }
   },
 
   langs: {
     vi: {
-      noTag: "Bạn phải tag người bạn muốn tát"
+      noTag: "Bạn phải tag hoặc reply người bạn muốn tát"
     },
     en: {
-      noTag: "You must tag the person you want to slap"
+      noTag: "You must tag or reply to the person you want to slap"
     }
   },
 
   onStart: async function ({ event, message, usersData, args, getLang }) {
     try {
       const uid1 = event.senderID;
-      const uid2 = Object.keys(event.mentions || {})[0];
 
-      // ❌ no mention
+      // ✅ target user (mention OR reply)
+      let uid2 = Object.keys(event.mentions || {})[0];
+      if (!uid2 && event.messageReply) {
+        uid2 = event.messageReply.senderID;
+      }
+
+      // ❌ no target
       if (!uid2)
         return message.reply(getLang("noTag"));
 
@@ -41,11 +46,11 @@ module.exports = {
         return message.reply("Slap yourself Dude 🐸🐸!");
       }
 
-      // avatars
+      // avatar urls
       const avatarURL1 = await usersData.getAvatarUrl(uid1).catch(() => null);
       const avatarURL2 = await usersData.getAvatarUrl(uid2).catch(() => null);
 
-      // helper stream → buffer
+      // stream → buffer helper
       const streamToBuffer = (stream) =>
         new Promise((resolve, reject) => {
           const chunks = [];
@@ -62,13 +67,13 @@ module.exports = {
 
       // avatar loader
       async function loadAvatar(url) {
-        if (!url) return new Jimp(120, 120, "#999");
+        if (!url) return new Jimp(120, 120, "#999999");
         try {
           const s = await getStreamFromURL(url);
           const b = await streamToBuffer(s);
           return await Jimp.read(b);
         } catch {
-          return new Jimp(120, 120, "#999");
+          return new Jimp(120, 120, "#999999");
         }
       }
 
@@ -76,31 +81,33 @@ module.exports = {
       let img2 = await loadAvatar(avatarURL2);
 
       // resize + circle
-      img1 = img1.resize(120, 120).circle();
-      img2 = img2.resize(120, 120).circle();
+      img1.resize(120, 120).circle();
+      img2.resize(120, 120).circle();
 
       /**
-       * 🧠 POSITION (adjust if needed)
-       * slap meme style:
+       * slap meme position
        * left = victim
        * right = slapper
        */
       bg.composite(img2, 120, 200); // victim
       bg.composite(img1, 420, 80);  // slapper
 
-      // save temp
+      // temp folder
       const dir = path.join(__dirname, "tmp");
       if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
       const filePath = path.join(dir, `${uid1}_${uid2}_slap.jpg`);
       await bg.writeAsync(filePath);
 
-      const content = args.join(" ").replace(uid2, "").trim();
+      const content = args.join(" ").trim();
 
-      return message.reply({
-        body: content || "Bópppp 😵‍💫😵",
-        attachment: fs.createReadStream(filePath)
-      }, () => fs.unlinkSync(filePath));
+      return message.reply(
+        {
+          body: content || "Bópppp 😵‍💫😵",
+          attachment: fs.createReadStream(filePath)
+        },
+        () => fs.unlinkSync(filePath)
+      );
 
     } catch (err) {
       console.error(err);
