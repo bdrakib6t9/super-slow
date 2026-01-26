@@ -2,23 +2,36 @@ module.exports = {
   config: {
     name: "inbox",
     aliases: ["in"],
-    version: "1.7",
+    version: "1.0",
     author: "Rakib",
-    countDown: 5,
+    countDown: 10,
     role: 0,
-    category: "system"
+    shortDescription: {
+      en: "okh enjoy @Rakib cmd"
+    },
+    longDescription: {
+      en: ""
+    },
+    category: "fun",
+    guide: {
+      en: ""
+    }
+  },
+  langs: {
+    en: {
+      gg: ""
+    },
+    id: {
+      gg: ""
+    }
   },
   onStart: async function({ api, event, args, message }) {
     try {
-      if (this.config.author !== obfuscatedAuthor) {
-      return api.sendMessage("You are not authorized to change the author name.\n", event.threadID, event.messageID);
-    }
-
       const query = encodeURIComponent(args.join(' '));
-      message.reply("𝐛𝐚𝐛𝐲 𝐜𝐡𝐞𝐜𝐤 𝐲𝐨𝐮𝐫 𝐢𝐧𝐛𝐨𝐱 🐤", event.threadID);
-      api.sendMessage("𝐡𝐢 𝐛𝐚𝐛𝐲😘", event.senderID);
+      message.reply("✅ SUCCESSFULLY SEND MSG\n\n🔰 PLEASE CK YOUR INBOX OR MSG REQUEST BOX", event.threadID);
+      api.sendMessage("✅ SUCCESSFULLY ALLOW\n🔰 NOW YOU CAN USE🫠 HI I'M BAYJID BOT🫠 HERE", event.senderID);
     } catch (error) {
-      console.error("error baby: " + error);
+      console.error("Error bro: " + error);
     }
   }
-};
+}
