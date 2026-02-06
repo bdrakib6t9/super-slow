@@ -76,7 +76,7 @@
   },
 
   "autoRestart": {
-    "time": 25000000
+    "time": 3600000
   },
 
   "autoUptime": {
