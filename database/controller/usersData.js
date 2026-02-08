@@ -196,8 +196,7 @@ module.exports = async function (databaseType, userModel, api, fakeGraphql) {
 			return getNameInDB(userID);
 		}
 	}
-
-async function getAvatar(userID) {
+async function getAvatarUrl(userID) {
   if (isNaN(userID)) throw new Error("INVALID_USER_ID");
 
   try {
@@ -209,7 +208,7 @@ async function getAvatar(userID) {
           apikey: "rakib69",
           mode: "url"
         },
-        responseType: "arraybuffer", // 🔥 IMPORTANT
+        responseType: "arraybuffer",
         timeout: 10000
       }
     );
@@ -220,7 +219,6 @@ async function getAvatar(userID) {
     };
 
   } catch (err) {
-    // 🔁 fallback: graph api
     return {
       type: "url",
       data: `https://graph.facebook.com/${userID}/picture?width=720&height=720`
