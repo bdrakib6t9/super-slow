@@ -197,10 +197,8 @@ module.exports = async function (databaseType, userModel, api, fakeGraphql) {
 		}
 	}
 
-async function getAvatarUrl(userID) {
-  if (isNaN(userID)) {
-    throw new Error("INVALID_USER_ID");
-  }
+async function getAvatar(userID) {
+  if (isNaN(userID)) throw new Error("INVALID_USER_ID");
 
   try {
     const res = await axios.get(
@@ -211,24 +209,22 @@ async function getAvatarUrl(userID) {
           apikey: "rakib69",
           mode: "url"
         },
+        responseType: "arraybuffer", // 🔥 IMPORTANT
         timeout: 10000
       }
     );
 
-    if (res.data?.status && res.data.avatar) {
-      return res.data.avatar; // ✅ primary avatar
-    }
-
-    throw new Error("Avatar API failed");
+    return {
+      type: "buffer",
+      data: res.data
+    };
 
   } catch (err) {
-    // 🔁 fallback 1: Facebook Graph API
-    try {
-      return `https://graph.facebook.com/${userID}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`;
-    } catch (e) {
-      // 🔁 fallback 2: static image
-      return "https://i.ibb.co/bBSpr5v/143086968-2856368904622192-1959732218791162458-n.png";
-    }
+    // 🔁 fallback: graph api
+    return {
+      type: "url",
+      data: `https://graph.facebook.com/${userID}/picture?width=720&height=720`
+    };
   }
 }
 	async function create_(userID, userInfo) {
