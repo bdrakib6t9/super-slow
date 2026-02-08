@@ -196,33 +196,18 @@ module.exports = async function (databaseType, userModel, api, fakeGraphql) {
 			return getNameInDB(userID);
 		}
 	}
-async function getAvatarUrl(userID) {
-  if (isNaN(userID)) throw new Error("INVALID_USER_ID");
-
+async function getAvatar(userID) {
   try {
     const res = await axios.get(
       "https://rakib-api.vercel.app/api/fb-avatar",
       {
-        params: {
-          uid: userID,
-          apikey: "rakib69",
-          mode: "url"
-        },
-        responseType: "arraybuffer",
-        timeout: 10000
+        params: { uid: userID, apikey: "rakib69" },
+        responseType: "arraybuffer"
       }
     );
-
-    return {
-      type: "buffer",
-      data: res.data
-    };
-
-  } catch (err) {
-    return {
-      type: "url",
-      data: `https://graph.facebook.com/${userID}/picture?width=720&height=720`
-    };
+    return res.data;
+  } catch {
+    return `https://graph.facebook.com/${userID}/picture?width=720&height=720`;
   }
 }
 	async function create_(userID, userInfo) {
