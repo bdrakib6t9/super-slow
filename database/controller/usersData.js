@@ -196,26 +196,36 @@ module.exports = async function (databaseType, userModel, api, fakeGraphql) {
 			return getNameInDB(userID);
 		}
 	}
+	
+const fs = require("fs-extra");
+async function getAvatarUrl(uid) {
+  if (!uid || isNaN(uid)) return null;
 
-async function getAvatarUrl(userID) {
-  if (isNaN(userID)) throw new Error("INVALID_USER_ID");
+  try {
+    const res = await axios.get(
+      "https://rakib-api.vercel.app/api/fb-avatar",
+      {
+        params: {
+          uid,
+          apikey: "rakib69"
+        },
+        responseType: "arraybuffer",
+        timeout: 10000
+      }
+    );
 
-  const res = await axios.get(
-    "https://rakib-api.vercel.app/api/fb-avatar",
-    {
-      params: {
-        uid: userID,
-        apikey: "rakib69"
-      },
-      responseType: "arraybuffer",
-      timeout: 10000
-    }
-  );
+    const cacheDir = path.join(__dirname, "..", "cache");
+    if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
-  return {
-    type: "buffer",
-    data: res.data
-  };
+    const filePath = path.join(cacheDir, `${uid}.jpg`);
+    fs.writeFileSync(filePath, res.data);
+
+    return filePath; // ✅ local path
+
+  } catch (err) {
+    console.error("getAvatarUrl error:", err.message);
+    return null;
+  }
 }
 	async function create_(userID, userInfo) {
 		const findInCreatingData = creatingUserData.find(u => u.userID == userID);
