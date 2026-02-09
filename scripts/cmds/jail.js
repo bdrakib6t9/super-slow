@@ -1,16 +1,17 @@
-const { getStreamFromURL } = global.utils;
+const fs = require("fs");
 const Jimp = require("jimp");
 const { Readable } = require("stream");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 /**
  * @author Rakib
- * Jail command – PURE JIMP (no external image)
+ * Jail command – PURE JIMP + LOCAL AVATAR
  */
 
 module.exports = {
   config: {
     name: "jail",
-    version: "4.0",
+    version: "4.1",
     author: "Rakib",
     role: 0,
     category: "fun",
@@ -38,30 +39,16 @@ module.exports = {
       // USER DATA
       // -------------------------
       const name = await usersData.getName(targetID).catch(() => "User");
-      const avatarUrl = await usersData.getAvatarUrl(targetID).catch(() => null);
+      const avatarPath = await getAvatarUrl(targetID).catch(() => null);
 
-      if (!avatarUrl) {
+      if (!avatarPath || !fs.existsSync(avatarPath)) {
         return message.reply("❌ Avatar পাওয়া যায়নি।");
       }
 
       // -------------------------
-      // STREAM → BUFFER
-      // -------------------------
-      const streamToBuffer = (stream) =>
-        new Promise((resolve, reject) => {
-          const chunks = [];
-          stream.on("data", c => chunks.push(c));
-          stream.on("end", () => resolve(Buffer.concat(chunks)));
-          stream.on("error", reject);
-        });
-
-      const avatarStream = await getStreamFromURL(avatarUrl);
-      const avatarBuffer = await streamToBuffer(avatarStream);
-
-      // -------------------------
       // BASE IMAGE
       // -------------------------
-      let img = await Jimp.read(avatarBuffer);
+      let img = await Jimp.read(avatarPath);
       img.resize(500, 500).grayscale().contrast(0.2);
 
       // -------------------------
@@ -71,21 +58,32 @@ module.exports = {
       const barWidth = 18;
       const gap = 45;
 
+      // vertical bars
       for (let x = 0; x < img.bitmap.width; x += gap) {
         for (let y = 0; y < img.bitmap.height; y++) {
           for (let w = 0; w < barWidth; w++) {
-            img.setPixelColor(barColor, x + w, y);
+            if (x + w < img.bitmap.width) {
+              img.setPixelColor(barColor, x + w, y);
+            }
           }
         }
       }
 
-      // top & bottom bars
+      // top bar
       img.scan(0, 0, img.bitmap.width, 25, (_, __, idx) => {
         img.bitmap.data.writeUInt32BE(barColor, idx);
       });
-      img.scan(0, img.bitmap.height - 25, img.bitmap.width, 25, (_, __, idx) => {
-        img.bitmap.data.writeUInt32BE(barColor, idx);
-      });
+
+      // bottom bar
+      img.scan(
+        0,
+        img.bitmap.height - 25,
+        img.bitmap.width,
+        25,
+        (_, __, idx) => {
+          img.bitmap.data.writeUInt32BE(barColor, idx);
+        }
+      );
 
       // -------------------------
       // EXPORT
@@ -101,7 +99,7 @@ module.exports = {
 
     } catch (err) {
       console.error("JAIL FINAL ERROR:", err);
-      return message.reply("❌ Jail command failed, lagau msg TESSA ke.");
+      return message.reply("❌ Jail command failed.");
     }
   }
 };
