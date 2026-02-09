@@ -1,11 +1,13 @@
 const jimp = require("jimp");
 const fs = require("fs");
+const path = require("path");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "us",
     aliases: ["uss"],
-    version: "2.1",
+    version: "2.2",
     author: "Rakib",
     countDown: 5,
     role: 0,
@@ -22,7 +24,7 @@ module.exports = {
 
     // ✅ target (mention OR reply)
     let targetID = Object.keys(event.mentions || {})[0];
-    if (!targetID && event.messageReply) {
+    if (!targetID && event.messageReply?.senderID) {
       targetID = event.messageReply.senderID;
     }
 
@@ -42,12 +44,17 @@ module.exports = {
       two = mentions[0];
     }
 
-    const path = await makeImage(one, two);
+    const outPath = await makeImage(one, two);
 
-    return message.reply({
-      body: getRandomText(),
-      attachment: fs.createReadStream(path)
-    }, () => fs.unlinkSync(path));
+    return message.reply(
+      {
+        body: getRandomText(),
+        attachment: fs.createReadStream(outPath)
+      },
+      () => {
+        if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
+      }
+    );
   }
 };
 
@@ -57,25 +64,40 @@ async function makeImage(one, two) {
   const bgURL =
     "https://drive.google.com/uc?export=download&id=1bOW5kMqeU3VHHN1Hg1MCSIspNktzttvj";
 
-  const avone = await jimp.read(
-    `https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-  );
-  avone.circle();
+  // -------- avatars (LOCAL CACHE) --------
+  const pathOne = await getAvatarUrl(one).catch(() => null);
+  const pathTwo = await getAvatarUrl(two).catch(() => null);
 
-  const avtwo = await jimp.read(
-    `https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-  );
+  const avone = await loadAvatar(pathOne);
+  const avtwo = await loadAvatar(pathTwo);
+
+  avone.circle();
   avtwo.circle();
 
   const img = await jimp.read(bgURL);
 
-  img.resize(466, 659)
+  img
+    .resize(466, 659)
     .composite(avone.resize(110, 110), 150, 76)
     .composite(avtwo.resize(100, 100), 245, 305);
 
-  const outPath = `us_${Date.now()}.png`;
+  const outPath = path.join(__dirname, `us_${Date.now()}.png`);
   await img.writeAsync(outPath);
   return outPath;
+}
+
+// ---------------- AVATAR LOADER ----------------
+
+async function loadAvatar(localPath) {
+  try {
+    if (localPath && fs.existsSync(localPath)) {
+      return await jimp.read(localPath);
+    }
+  } catch {}
+
+  // fallback placeholder
+  const img = new jimp(512, 512, "#777");
+  return img;
 }
 
 // ---------------- RANDOM TEXT SYSTEM ----------------
@@ -91,4 +113,4 @@ function getRandomText() {
   ];
 
   return texts[Math.floor(Math.random() * texts.length)];
-}
+      }
