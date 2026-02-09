@@ -1,11 +1,13 @@
 const { getStreamFromURL } = global.utils;
 const Jimp = require("jimp");
 const { Readable } = require("stream");
+const fs = require("fs");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "pr",
-    version: "1.0",
+    version: "1.1",
     author: "Rakib + hoon",
     category: "love",
     guide: "{prefix}pr [@mention/reply]"
@@ -20,19 +22,21 @@ module.exports = {
 
       const members = threadData.members || [];
       const senderInfo = members.find(m => String(m.userID) === String(uidI));
-      if (!senderInfo) return message.reply("❌ Could not find your info in this group.");
+      if (!senderInfo) {
+        return message.reply("❌ Could not find your info in this group.");
+      }
 
       const findMember = (id) =>
         members.find(m => String(m.userID) === String(id));
 
-      // sender info
+      /* ================= SENDER ================= */
       let name1 = await usersData.getName(uidI).catch(() => null);
       if (!name1) name1 = senderInfo?.name || senderInfo?.fullName || "Unknown User";
 
-      let avatarUrl1 = await usersData.getAvatarUrl(uidI).catch(() => null);
+      const avatarPath1 = await getAvatarUrl(uidI).catch(() => null);
       const gender1 = senderInfo?.gender;
 
-      // ---------- target নির্বাচন: reply > mention > random ----------
+      /* ================= TARGET (reply > mention > random) ================= */
       let targetId = null;
 
       if (event.type === "message_reply" && event.messageReply?.senderID) {
@@ -44,7 +48,10 @@ module.exports = {
       }
 
       const pickRandomRoyal = () => {
-        const targetGender = gender1 === "MALE" ? "FEMALE" : gender1 === "FEMALE" ? "MALE" : null;
+        const targetGender =
+          gender1 === "MALE" ? "FEMALE" :
+          gender1 === "FEMALE" ? "MALE" : null;
+
         let list = [];
 
         if (targetGender) {
@@ -76,14 +83,14 @@ module.exports = {
       let name2 = await usersData.getName(matchedId).catch(() => null);
       if (!name2) name2 = matchedInfo?.name || matchedInfo?.fullName || "Unknown User";
 
-      let avatarUrl2 = await usersData.getAvatarUrl(matchedId).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(matchedId).catch(() => null);
       const gender2 = matchedInfo?.gender;
 
-      // random % for royal match
+      /* ================= ROYAL % ================= */
       const lovePercent = Math.floor(Math.random() * 41) + 60;        // 60–100
       const royalChemistry = Math.floor(Math.random() * 41) + 60;     // 60–100
 
-      // ---------- ফ্যান্সি italic নাম ----------
+      /* ================= FANCY ITALIC ================= */
       function toFancyItalic(inputName) {
         const name = String(inputName || "");
         const map = {
@@ -102,7 +109,7 @@ module.exports = {
       const fancyName1 = toFancyItalic(name1);
       const fancyName2 = toFancyItalic(name2);
 
-      // ---------- King/Queen Role Logic ----------
+      /* ================= KING / QUEEN ================= */
       let titleLine1 = "";
       let titleLine2 = "";
 
@@ -117,7 +124,7 @@ module.exports = {
         titleLine2 = `💞 ${fancyName1}  &  ${fancyName2}`;
       }
 
-      // ---------- Royal Message ----------
+      /* ================= MESSAGE ================= */
       const msg =
 `👑✨ 𝐑𝐨𝐲𝐚𝐥 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨👑
 
@@ -133,19 +140,19 @@ ${titleLine2}
 ✨ May this King & Queen energy bring elegance, loyalty,  
 and a story worthy of a royal legend. ✨`;
 
-      // ---------- IMAGE GENERATION WITH JIMP ----------
-      const streamToBuffer = (stream) => new Promise((resolve, reject) => {
-        const chunks = [];
-        stream.on("data", c => chunks.push(c));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
-        stream.on("error", reject);
-      });
-
-      // Background priority: Postimg JPG -> GitHub PNG
+      /* ================= BACKGROUND ================= */
       const bgUrls = [
         "https://i.postimg.cc/qvymkXx4/pr.jpg",
         "https://raw.githubusercontent.com/bdrakib12/baby-goat-bot/main/scripts/cmds/cache/pr.png"
       ];
+
+      const streamToBuffer = (stream) =>
+        new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on("data", c => chunks.push(c));
+          stream.on("end", () => resolve(Buffer.concat(chunks)));
+          stream.on("error", reject);
+        });
 
       let bgImage = null;
       for (const url of bgUrls) {
@@ -154,32 +161,28 @@ and a story worthy of a royal legend. ✨`;
           const bgBuffer = await streamToBuffer(bgStream);
           bgImage = await Jimp.read(bgBuffer);
           break;
-        } catch (e) {
-          console.warn("Failed to load pr background from:", url, e);
-        }
+        } catch {}
       }
 
-      if (!bgImage) {
-        return message.reply(msg);
-      }
+      if (!bgImage) return message.reply(msg);
 
       const bg = bgImage;
 
-      // Avatar positions (আপনার দেওয়া অনুযায়ী)
-      const pos1 = { x: 65, y: 104 };      // first avatar
-      const pos2 = { x: 460, y: 104 };     // second avatar
+      /* ================= AVATAR POSITIONS ================= */
+      const pos1 = { x: 65, y: 104 };
+      const pos2 = { x: 460, y: 104 };
       const size1 = 210;
       const size2 = 210;
 
-      async function loadAvatar(url, fallbackName) {
-        if (!url) return createPlaceholderAvatar(fallbackName);
+      /* ================= AVATAR LOADER (LOCAL PATH) ================= */
+      async function loadAvatar(localPath, fallbackName) {
         try {
-          const avStream = await getStreamFromURL(url);
-          const avBuffer = await streamToBuffer(avStream);
-          return await Jimp.read(avBuffer);
-        } catch {
-          return createPlaceholderAvatar(fallbackName);
-        }
+          if (localPath && fs.existsSync(localPath)) {
+            return await Jimp.read(localPath);
+          }
+        } catch {}
+
+        return createPlaceholderAvatar(fallbackName);
       }
 
       function createPlaceholderAvatar(name) {
@@ -210,11 +213,9 @@ and a story worthy of a royal legend. ✨`;
         });
       }
 
-      let img1 = await loadAvatar(avatarUrl1, name1);
-      let img2 = await loadAvatar(avatarUrl2, name2);
-
-      if (img1 instanceof Promise) img1 = await img1;
-      if (img2 instanceof Promise) img2 = await img2;
+      /* ================= LOAD AVATARS ================= */
+      let img1 = await loadAvatar(avatarPath1, name1);
+      let img2 = await loadAvatar(avatarPath2, name2);
 
       img1 = img1.resize(size1, size1).circle();
       img2 = img2.resize(size2, size2).circle();
@@ -222,6 +223,7 @@ and a story worthy of a royal legend. ✨`;
       bg.composite(img1, pos1.x, pos1.y);
       bg.composite(img2, pos2.x, pos2.y);
 
+      /* ================= OUTPUT ================= */
       const finalBuffer = await bg.getBufferAsync(Jimp.MIME_PNG);
       const imgStream = Readable.from(finalBuffer);
       imgStream.path = "pr.png";
