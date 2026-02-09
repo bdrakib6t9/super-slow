@@ -1,11 +1,13 @@
 const { getStreamFromURL } = global.utils;
 const Jimp = require("jimp");
 const { Readable } = require("stream");
+const fs = require("fs");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "pairme",
-    version: "1.0",
+    version: "1.1",
     author: "Rakib + hoon",
     category: "love",
     guide: "{prefix}pairme [@mention/reply]"
@@ -20,34 +22,32 @@ module.exports = {
 
       const members = threadData.members || [];
       const senderInfo = members.find(m => String(m.userID) === String(uidI));
-      if (!senderInfo) return message.reply("❌ Could not find your info in this group.");
+      if (!senderInfo) {
+        return message.reply("❌ Could not find your info in this group.");
+      }
 
-      // ছোট helper
       const findMember = (id) =>
         members.find(m => String(m.userID) === String(id));
 
-      // sender basic info
+      /* ================= SENDER ================= */
       let name1 = await usersData.getName(uidI).catch(() => null);
       if (!name1) name1 = senderInfo?.name || senderInfo?.fullName || "Unknown User";
 
-      let avatarUrl1 = await usersData.getAvatarUrl(uidI).catch(() => null);
-
+      const avatarPath1 = await getAvatarUrl(uidI).catch(() => null);
       const gender1 = senderInfo?.gender;
 
-      // target নির্ধারণ: reply > mention > random
+      /* ================= TARGET (reply > mention > random) ================= */
       let targetId = null;
 
-      // 1) reply থাকলে
-      if (event.type === "message_reply" && event.messageReply && event.messageReply.senderID) {
+      if (event.type === "message_reply" && event.messageReply?.senderID) {
         targetId = String(event.messageReply.senderID);
       }
 
-      // 2) না থাকলে mention থেকে
       if (!targetId && event.mentions && Object.keys(event.mentions).length > 0) {
         targetId = String(Object.keys(event.mentions)[0]);
       }
 
-      let mode = "random"; // "random" or "fixed"
+      let mode = "random";
       let matchedUserId = null;
 
       if (targetId && targetId !== String(uidI)) {
@@ -55,9 +55,11 @@ module.exports = {
         matchedUserId = targetId;
       }
 
-      // যদি না reply, না mention -> random opposite gender
       const tryPickRandom = () => {
-        const targetGender = gender1 === "MALE" ? "FEMALE" : (gender1 === "FEMALE" ? "MALE" : null);
+        const targetGender =
+          gender1 === "MALE" ? "FEMALE" :
+          gender1 === "FEMALE" ? "MALE" : null;
+
         let list = [];
 
         if (targetGender) {
@@ -69,7 +71,6 @@ module.exports = {
           );
         }
 
-        // যদি opposite gender না পায়, তাহলে যে কেউ (self বাদে)
         if (!list.length) {
           list = members.filter(
             m => m.inGroup && String(m.userID) !== String(uidI)
@@ -83,11 +84,7 @@ module.exports = {
       let matchedInfo = null;
 
       if (mode === "fixed") {
-        matchedInfo = findMember(matchedUserId);
-        if (!matchedInfo) {
-          // fallback random
-          matchedInfo = tryPickRandom();
-        }
+        matchedInfo = findMember(matchedUserId) || tryPickRandom();
       } else {
         matchedInfo = tryPickRandom();
       }
@@ -101,15 +98,14 @@ module.exports = {
       let name2 = await usersData.getName(matchedId).catch(() => null);
       if (!name2) name2 = matchedInfo?.name || matchedInfo?.fullName || "Unknown User";
 
-      let avatarUrl2 = await usersData.getAvatarUrl(matchedId).catch(() => null);
-
+      const avatarPath2 = await getAvatarUrl(matchedId).catch(() => null);
       const gender2 = matchedInfo?.gender;
 
-      // Percent
+      /* ================= PERCENT ================= */
       const lovePercent = Math.floor(Math.random() * 36) + 65;
       const compatibility = Math.floor(Math.random() * 36) + 65;
 
-      // ---------- Fancy italic name ----------
+      /* ================= FANCY ITALIC ================= */
       function toFancyItalic(inputName) {
         const name = String(inputName || "");
         const map = {
@@ -128,62 +124,51 @@ module.exports = {
       const fancyName1 = toFancyItalic(name1);
       const fancyName2 = toFancyItalic(name2);
 
-      // ---------- Fun note (same-gender cases) ----------
       let funNote = "";
-      if (gender1 && gender2 && gender1 === "MALE" && gender2 === "MALE") {
-        funNote = "🤣 Bromance level: 999+… are you two sure this is *just* friendship? 👀";
-      } else if (gender1 && gender2 && gender1 === "FEMALE" && gender2 === "FEMALE") {
+      if (gender1 === "MALE" && gender2 === "MALE") {
+        funNote = "🤣 Bromance level: 999+… are you two sure this is just friendship? 👀";
+      } else if (gender1 === "FEMALE" && gender2 === "FEMALE") {
         funNote = "👀 Girl power detected… this vibe is dangerously cute ✨";
       }
 
-      // ---------- Final message ----------
-      const msgLines = [];
+      /* ================= MESSAGE ================= */
+      const msg =
+`💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖
 
-      msgLines.push("💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖");
-      msgLines.push("");
-      msgLines.push("💫 𝑻𝒐𝒏𝒊𝒈𝒉𝒕, 𝒅𝒆𝒔𝒕𝒊𝒏𝒚 𝒘𝒉𝒊𝒔𝒑𝒆𝒓𝒔 𝒔𝒐𝒇𝒕𝒍𝒚…");
-      msgLines.push("𝒕𝒘𝒐 𝒉𝒆𝒂𝒓𝒕𝒔 𝒂𝒍𝒊𝒈𝒏 𝒖𝒏𝒅𝒆𝒓 𝒕𝒉𝒆 𝒈𝒍𝒐𝒘 𝒐𝒇 𝒇𝒂𝒕𝒆.");
-      msgLines.push("");
+💫 Tonight, destiny whispers softly…
+two hearts align under the glow of fate.
 
-      if (funNote) {
-        msgLines.push(funNote);
-        msgLines.push("");
-      }
+${funNote ? funNote + "\n\n" : ""}💞 ${fancyName1}
+💞 ${fancyName2}
 
-      msgLines.push(`💞 ${fancyName1}`);
-      msgLines.push(`💞 ${fancyName2}`);
-      msgLines.push("");
-      msgLines.push(`❤️ 𝑳𝒐𝒗𝒆 𝑹𝒂𝒕𝒊𝒏𝒈: ${lovePercent}%`);
-      msgLines.push(`🌟 𝑺𝒐𝒖𝒍 𝑨𝒍𝒊𝒈𝒏𝒎𝒆𝒏𝒕: ${compatibility}%`);
-      msgLines.push("");
-      msgLines.push("✨ 𝐌𝐚𝐲 𝐭𝐡𝐢𝐬 𝐜𝐨𝐧𝐧𝐞𝐜𝐭𝐢𝐨𝐧 𝐛𝐥𝐨𝐨𝐦 𝐰𝐢𝐭𝐡 𝐞𝐥𝐞𝐠𝐚𝐧𝐜𝐞, 𝐩𝐚𝐬𝐬𝐢𝐨𝐧,");
-      msgLines.push("𝐚𝐧𝐝 𝐚 𝐭𝐨𝐮𝐜𝐡 𝐨𝐟 𝐭𝐢𝐦𝐞𝐥𝐞𝐬𝐬 𝐫𝐨𝐦𝐚𝐧𝐜𝐞. ✨");
+❤️ Love Rating: ${lovePercent}%
+🌟 Soul Alignment: ${compatibility}%
 
-      const msg = msgLines.join("\n");
+✨ May this connection bloom with elegance,
+passion, and timeless romance. ✨`;
 
-      // ---------- IMAGE GENERATION WITH JIMP ----------
-      const streamToBuffer = (stream) => new Promise((resolve, reject) => {
-        const chunks = [];
-        stream.on("data", c => chunks.push(c));
-        stream.on("end", () => resolve(Buffer.concat(chunks)));
-        stream.on("error", reject);
-      });
-
+      /* ================= BACKGROUND ================= */
       const bgUrls = [
         "https://raw.githubusercontent.com/bdrakib12/baby-goat-bot/main/scripts/cmds/cache/pair.png",
         "https://i.postimg.cc/cJNqywkj/pair.png"
       ];
 
+      const streamToBuffer = (stream) =>
+        new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on("data", c => chunks.push(c));
+          stream.on("end", () => resolve(Buffer.concat(chunks)));
+          stream.on("error", reject);
+        });
+
       let bgImage = null;
       for (const url of bgUrls) {
         try {
-          const bgStream = await getStreamFromURL(url);
-          const bgBuffer = await streamToBuffer(bgStream);
-          bgImage = await Jimp.read(bgBuffer);
+          const s = await getStreamFromURL(url);
+          const b = await streamToBuffer(s);
+          bgImage = await Jimp.read(b);
           break;
-        } catch (e) {
-          console.warn("Failed to load background from", url, e);
-        }
+        } catch {}
       }
 
       if (!bgImage) {
@@ -192,23 +177,18 @@ module.exports = {
 
       const bg = bgImage;
 
+      /* ================= AVATARS ================= */
       const AVATAR_SIZE = 200;
-      const circleOnePos = { x: 955, y: 185 }; // sender
-      const circleTwoPos = { x: 115, y: 185 }; // target
+      const pos1 = { x: 955, y: 185 };
+      const pos2 = { x: 115, y: 185 };
 
-      async function loadAvatar(url, fallbackName) {
-        if (!url) {
-          return createPlaceholderAvatar(fallbackName);
-        }
+      async function loadAvatar(localPath, fallbackName) {
         try {
-          const avStream = await getStreamFromURL(url);
-          const avBuffer = await streamToBuffer(avStream);
-          const img = await Jimp.read(avBuffer);
-          return img;
-        } catch (e) {
-          console.warn("Failed to load avatar:", url, e);
-          return createPlaceholderAvatar(fallbackName);
-        }
+          if (localPath && fs.existsSync(localPath)) {
+            return await Jimp.read(localPath);
+          }
+        } catch {}
+        return createPlaceholderAvatar(fallbackName);
       }
 
       function createPlaceholderAvatar(name) {
@@ -221,37 +201,32 @@ module.exports = {
           .join("")
           .toUpperCase();
 
-        return Jimp.loadFont(Jimp.FONT_SANS_32_BLACK)
-          .then(font => {
-            img.print(
-              font,
-              0,
-              0,
-              {
-                text: initials,
-                alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-                alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-              },
-              AVATAR_SIZE,
-              AVATAR_SIZE
-            );
-            return img;
-          });
+        return Jimp.loadFont(Jimp.FONT_SANS_32_BLACK).then(font => {
+          img.print(
+            font,
+            0,
+            0,
+            {
+              text: initials,
+              alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+              alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+            },
+            AVATAR_SIZE,
+            AVATAR_SIZE
+          );
+          return img;
+        });
       }
 
-      let img1 = await loadAvatar(avatarUrl1, name1);
-      let img2 = await loadAvatar(avatarUrl2, name2);
-
-      if (img1 instanceof Promise) img1 = await img1;
-      if (img2 instanceof Promise) img2 = await img2;
+      let img1 = await loadAvatar(avatarPath1, name1);
+      let img2 = await loadAvatar(avatarPath2, name2);
 
       img1 = img1.resize(AVATAR_SIZE, AVATAR_SIZE).circle();
       img2 = img2.resize(AVATAR_SIZE, AVATAR_SIZE).circle();
 
-      bg.composite(img1, circleOnePos.x, circleOnePos.y);
-      bg.composite(img2, circleTwoPos.x, circleTwoPos.y);
+      bg.composite(img1, pos1.x, pos1.y);
+      bg.composite(img2, pos2.x, pos2.y);
 
-      // নিচে ছোট percent line (optional)
       try {
         const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
         const textLine = `❤ ${lovePercent}%   •   🌟 ${compatibility}%`;
@@ -267,10 +242,9 @@ module.exports = {
           bg.bitmap.width,
           40
         );
-      } catch (e) {
-        console.warn("Failed to print text on image:", e);
-      }
+      } catch {}
 
+      /* ================= OUTPUT ================= */
       const finalBuffer = await bg.getBufferAsync(Jimp.MIME_PNG);
       const imgStream = Readable.from(finalBuffer);
       imgStream.path = "pairme.png";
