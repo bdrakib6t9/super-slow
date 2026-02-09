@@ -1,11 +1,13 @@
-const { getStreamFromURL } = global.utils;
+const fs = require("fs");
 const Jimp = require("jimp");
 const { Readable } = require("stream");
+const { getStreamFromURL } = global.utils;
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "tus",
-    version: "3.0",
+    version: "3.1",
     author: "Rakib",
     category: "fun",
     guide: "{prefix}tus @mention বা কাউকে reply দিন"
@@ -19,7 +21,7 @@ module.exports = {
       // TARGET (reply > mention)
       // -------------------------
       let targetID = null;
-      if (event.type === "message_reply") {
+      if (event.type === "message_reply" && event.messageReply?.senderID) {
         targetID = event.messageReply.senderID;
       } else if (event.mentions && Object.keys(event.mentions).length > 0) {
         targetID = Object.keys(event.mentions)[0];
@@ -38,14 +40,17 @@ module.exports = {
       const senderInfo = members.find(m => String(m.userID) === String(senderID));
       const targetInfo = members.find(m => String(m.userID) === String(targetID));
 
-      let name1 = await usersData.getName(senderID).catch(() => senderInfo?.name || "User1");
-      let name2 = await usersData.getName(targetID).catch(() => targetInfo?.name || "User2");
-
-      let avatarUrl1 = await usersData.getAvatarUrl(senderID).catch(() => null);
-      let avatarUrl2 = await usersData.getAvatarUrl(targetID).catch(() => null);
+      const name1 = await usersData.getName(senderID).catch(() => senderInfo?.name || "User1");
+      const name2 = await usersData.getName(targetID).catch(() => targetInfo?.name || "User2");
 
       // -------------------------
-      // RANDOM TEXT SYSTEM
+      // AVATAR (DPF STYLE - LOCAL FILE)
+      // -------------------------
+      const avatarPath1 = await getAvatarUrl(senderID).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(targetID).catch(() => null);
+
+      // -------------------------
+      // RANDOM TEXT
       // -------------------------
       const bnTexts = [
         "এই নাও 😎 তোমাকে টুস করে দিলাম!",
@@ -63,14 +68,13 @@ module.exports = {
         "There you go 😉 freshly served Tus!"
       ];
 
-      // 50/50 language switch
       const useBangla = Math.random() < 0.5;
       const selectedText = useBangla
         ? bnTexts[Math.floor(Math.random() * bnTexts.length)]
         : enTexts[Math.floor(Math.random() * enTexts.length)];
 
       // -------------------------
-      // IMAGE PART (NO TEXT)
+      // IMAGE HELPERS
       // -------------------------
       const streamToBuffer = (stream) =>
         new Promise((resolve, reject) => {
@@ -80,6 +84,40 @@ module.exports = {
           stream.on("error", reject);
         });
 
+      function placeholder(name) {
+        const img = new Jimp(100, 100, "#888");
+        const letter = (String(name)[0] || "U").toUpperCase();
+        return Jimp.loadFont(Jimp.FONT_SANS_32_WHITE).then(font => {
+          img.print(
+            font,
+            0,
+            0,
+            {
+              text: letter,
+              alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+              alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+            },
+            100,
+            100
+          );
+          return img;
+        });
+      }
+
+      async function loadAvatar(path, fallbackName) {
+        try {
+          if (!path || !fs.existsSync(path)) {
+            return await placeholder(fallbackName);
+          }
+          return await Jimp.read(path);
+        } catch {
+          return await placeholder(fallbackName);
+        }
+      }
+
+      // -------------------------
+      // LOAD BACKGROUND
+      // -------------------------
       const bgUrls = [
         "https://raw.githubusercontent.com/bdrakib12/baby-goat-bot/main/scripts/cmds/cache/tus.jpg",
         "https://i.postimg.cc/zGz8mH43/tus.jpg"
@@ -94,39 +132,17 @@ module.exports = {
         } catch {}
       }
 
-      if (!bgBuffer) return message.reply("❌ tus background লোড করা যায়নি।");
+      if (!bgBuffer) {
+        return message.reply("❌ tus background লোড করা যায়নি।");
+      }
 
       const bg = await Jimp.read(bgBuffer);
 
-      async function loadAvatar(url, fallbackName) {
-        if (!url) return placeholder(fallbackName);
-        try {
-          const s = await getStreamFromURL(url);
-          const buf = await streamToBuffer(s);
-          return await Jimp.read(buf);
-        } catch {
-          return placeholder(fallbackName);
-        }
-      }
-
-      function placeholder(name) {
-        const img = new Jimp(100, 100, "#888");
-        const letter = (String(name)[0] || "U").toUpperCase();
-        return Jimp.loadFont(Jimp.FONT_SANS_32_WHITE).then(font => {
-          img.print(font, 0, 0, {
-            text: letter,
-            alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-          }, 100, 100);
-          return img;
-        });
-      }
-
-      let img1 = await loadAvatar(avatarUrl1, name1);
-      let img2 = await loadAvatar(avatarUrl2, name2);
-
-      if (img1 instanceof Promise) img1 = await img1;
-      if (img2 instanceof Promise) img2 = await img2;
+      // -------------------------
+      // LOAD AVATARS
+      // -------------------------
+      let img1 = await loadAvatar(avatarPath1, name1);
+      let img2 = await loadAvatar(avatarPath2, name2);
 
       img1 = img1.resize(100, 100).circle();
       img2 = img2.resize(100, 100).circle();
@@ -134,20 +150,20 @@ module.exports = {
       bg.composite(img1, 75, 95);
       bg.composite(img2, 590, 95);
 
+      // -------------------------
+      // FINAL OUTPUT
+      // -------------------------
       const outBuffer = await bg.getBufferAsync(Jimp.MIME_JPEG);
       const imgStream = Readable.from(outBuffer);
       imgStream.path = "tus.jpg";
 
-      // -------------------------
-      // FINAL REPLY
-      // -------------------------
       return message.reply({
         body: `😎 ${name1} ➜ ${name2}\n\n${selectedText}`,
         attachment: imgStream
       });
 
     } catch (err) {
-      console.error(err);
+      console.error("tus command error:", err);
       return message.reply("❌ Tus command failed.");
     }
   }
