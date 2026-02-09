@@ -1,5 +1,8 @@
-const axios = require("axios");
 const fs = require("fs-extra");
+const path = require("path");
+const { createCanvas, loadImage } = require("canvas");
+const { getStreamFromURL } = global.utils;
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
@@ -19,121 +22,136 @@ module.exports = {
     }
   },
 
-  onStart: async function ({
-    api, event, threadsData, usersData
-  }) {
+  onStart: async function ({ api, event, usersData }) {
+    try {
+      const id1 = event.senderID;
+      const name1 = await usersData.getName(id1);
 
-    const { loadImage, createCanvas } = require("canvas");
+      /* ================= THREAD INFO ================= */
+      const threadInfo = await api.getThreadInfo(event.threadID);
+      const all = threadInfo.userInfo || [];
 
-    let pathImg = __dirname + "/assets/background.png";
-    let pathAvt1 = __dirname + "/assets/any.png";
-    let pathAvt2 = __dirname + "/assets/avatar.png";
-
-    const id1 = event.senderID;
-    const name1 = await usersData.getName(id1);
-
-    const threadInfo = await api.getThreadInfo(event.threadID);
-    const all = threadInfo.userInfo;
-
-    let gender1;
-    for (let c of all) {
-      if (c.id == id1) gender1 = c.gender;
-    }
-
-    const botID = api.getCurrentUserID();
-    let ungvien = [];
-
-    if (gender1 == "FEMALE") {
-      for (let u of all) {
-        if (u.gender == "MALE" && u.id !== id1 && u.id !== botID) {
-          ungvien.push(u.id);
+      let gender1;
+      for (const u of all) {
+        if (String(u.id) === String(id1)) {
+          gender1 = u.gender;
+          break;
         }
       }
-    }
-    else if (gender1 == "MALE") {
-      for (let u of all) {
-        if (u.gender == "FEMALE" && u.id !== id1 && u.id !== botID) {
-          ungvien.push(u.id);
-        }
+
+      const botID = api.getCurrentUserID();
+      let candidates = [];
+
+      if (gender1 === "FEMALE") {
+        candidates = all.filter(
+          u => u.gender === "MALE" && u.id !== id1 && u.id !== botID
+        );
+      } else if (gender1 === "MALE") {
+        candidates = all.filter(
+          u => u.gender === "FEMALE" && u.id !== id1 && u.id !== botID
+        );
+      } else {
+        candidates = all.filter(
+          u => u.id !== id1 && u.id !== botID
+        );
       }
-    }
-    else {
-      for (let u of all) {
-        if (u.id !== id1 && u.id !== botID) {
-          ungvien.push(u.id);
-        }
+
+      if (!candidates.length) {
+        return api.sendMessage(
+          "❌ No suitable partner found in this group.",
+          event.threadID,
+          event.messageID
+        );
       }
-    }
 
-    const id2 = ungvien[Math.floor(Math.random() * ungvien.length)];
-    const name2 = await usersData.getName(id2);
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      const id2 = pick.id;
+      const name2 = await usersData.getName(id2);
 
-    const rd1 = Math.floor(Math.random() * 100) + 1;
-    const cc = ["0", "-1", "99.99", "-99", "-100", "101", "0.01"];
-    const rd2 = cc[Math.floor(Math.random() * cc.length)];
-    const djtme = [rd1, rd1, rd1, rd1, rd1, rd2, rd1, rd1, rd1, rd1];
-    const tile = djtme[Math.floor(Math.random() * djtme.length)];
+      /* ================= LOVE % ================= */
+      const rd1 = Math.floor(Math.random() * 100) + 1;
+      const cc = ["0", "-1", "99.99", "-99", "-100", "101", "0.01"];
+      const djtme = [rd1, rd1, rd1, rd1, rd1, rd2 = cc[Math.floor(Math.random() * cc.length)], rd1, rd1, rd1, rd1];
+      const tile = djtme[Math.floor(Math.random() * djtme.length)];
 
-    // 🔥 NEW BACKGROUND (Google Drive)
-    const background =
-      "https://drive.google.com/uc?export=download&id=19QEwghmb2jOmmqeFG-9ouAWYtQyHd0NF";
+      /* ================= BACKGROUND ================= */
+      const bgUrls = [
+        "https://drive.google.com/uc?export=download&id=19QEwghmb2jOmmqeFG-9ouAWYtQyHd0NF"
+      ];
 
-    // Avatar 1
-    const avt1 = (
-      await axios.get(
-        `https://graph.facebook.com/${id1}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
-        { responseType: "arraybuffer" }
-      )
-    ).data;
-    fs.writeFileSync(pathAvt1, Buffer.from(avt1));
+      const streamToBuffer = (stream) =>
+        new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on("data", c => chunks.push(c));
+          stream.on("end", () => resolve(Buffer.concat(chunks)));
+          stream.on("error", reject);
+        });
 
-    // Avatar 2
-    const avt2 = (
-      await axios.get(
-        `https://graph.facebook.com/${id2}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
-        { responseType: "arraybuffer" }
-      )
-    ).data;
-    fs.writeFileSync(pathAvt2, Buffer.from(avt2));
+      let bgBuffer = null;
+      for (const url of bgUrls) {
+        try {
+          const s = await getStreamFromURL(url);
+          bgBuffer = await streamToBuffer(s);
+          break;
+        } catch {}
+      }
 
-    // Background
-    const bg = (
-      await axios.get(background, { responseType: "arraybuffer" })
-    ).data;
-    fs.writeFileSync(pathImg, Buffer.from(bg));
+      if (!bgBuffer) {
+        return api.sendMessage("❌ Failed to load background.", event.threadID);
+      }
 
-    // Canvas
-    const baseImage = await loadImage(pathImg);
-    const baseAvt1 = await loadImage(pathAvt1);
-    const baseAvt2 = await loadImage(pathAvt2);
+      const baseImage = await loadImage(bgBuffer);
 
-    const canvas = createCanvas(baseImage.width, baseImage.height);
-    const ctx = canvas.getContext("2d");
+      /* ================= AVATARS (LOCAL CACHE) ================= */
+      const avatarPath1 = await getAvatarUrl(id1).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(id2).catch(() => null);
 
-    ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
-    ctx.drawImage(baseAvt1, 111, 175, 330, 330);
-    ctx.drawImage(baseAvt2, 1018, 173, 330, 330);
+      const avatar1 = avatarPath1 && fs.existsSync(avatarPath1)
+        ? await loadImage(avatarPath1)
+        : await loadImage(path.join(__dirname, "assets/any.png"));
 
-    const imageBuffer = canvas.toBuffer();
-    fs.writeFileSync(pathImg, imageBuffer);
-    fs.removeSync(pathAvt1);
-    fs.removeSync(pathAvt2);
+      const avatar2 = avatarPath2 && fs.existsSync(avatarPath2)
+        ? await loadImage(avatarPath2)
+        : await loadImage(path.join(__dirname, "assets/avatar.png"));
 
-    return api.sendMessage(
-      {
-        body:
+      /* ================= CANVAS ================= */
+      const canvas = createCanvas(baseImage.width, baseImage.height);
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+      ctx.drawImage(avatar1, 111, 175, 330, 330);
+      ctx.drawImage(avatar2, 1018, 173, 330, 330);
+
+      /* ================= OUTPUT ================= */
+      const outPath = path.join(__dirname, `prs_${Date.now()}.png`);
+      fs.writeFileSync(outPath, canvas.toBuffer());
+
+      return api.sendMessage(
+        {
+          body:
 `『💗』Congratulations ${name1}
 『❤️』Your destiny matched you with ${name2}
 『🔗』Love compatibility: ${tile}%`,
-        mentions: [
-          { tag: name2, id: id2 },
-          { tag: name1, id: id1 }
-        ],
-        attachment: fs.createReadStream(pathImg)
-      },
-      event.threadID,
-      () => fs.unlinkSync(pathImg),
-      event.messageID
-    );
+          mentions: [
+            { tag: name2, id: id2 },
+            { tag: name1, id: id1 }
+          ],
+          attachment: fs.createReadStream(outPath)
+        },
+        event.threadID,
+        () => {
+          if (fs.existsSync(outPath)) fs.unlinkSync(outPath);
+        },
+        event.messageID
+      );
+
+    } catch (err) {
+      console.error("prs command error:", err);
+      return api.sendMessage(
+        "❌ PRS command failed.",
+        event.threadID,
+        event.messageID
+      );
+    }
   }
 };
