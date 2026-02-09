@@ -1,11 +1,13 @@
-const { getStreamFromURL } = global.utils;
+const fs = require("fs");
 const Jimp = require("jimp");
 const { Readable } = require("stream");
+const { getStreamFromURL } = global.utils;
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "usta",
-    version: "3.0",
+    version: "3.1",
     author: "Rakib",
     category: "fun",
     guide: "{prefix}usta @mention বা কাউকে reply দিন"
@@ -20,10 +22,9 @@ module.exports = {
       // -------------------------
       let targetID = null;
 
-      if (event.type === "message_reply") {
+      if (event.type === "message_reply" && event.messageReply?.senderID) {
         targetID = event.messageReply.senderID;
-      }
-      else if (event.mentions && Object.keys(event.mentions).length > 0) {
+      } else if (event.mentions && Object.keys(event.mentions).length > 0) {
         targetID = Object.keys(event.mentions)[0];
       }
 
@@ -40,19 +41,21 @@ module.exports = {
       const senderInfo = members.find(m => String(m.userID) === String(senderID));
       const targetInfo = members.find(m => String(m.userID) === String(targetID));
 
-      let name1 = await usersData.getName(senderID).catch(() => senderInfo?.name || "User1");
-      let name2 = await usersData.getName(targetID).catch(() => targetInfo?.name || "User2");
+      const name1 = await usersData.getName(senderID).catch(() => senderInfo?.name || "User1");
+      const name2 = await usersData.getName(targetID).catch(() => targetInfo?.name || "User2");
 
-      let avatarUrl1 = await usersData.getAvatarUrl(senderID).catch(() => null);
-      let avatarUrl2 = await usersData.getAvatarUrl(targetID).catch(() => null);
+      // -------------------------
+      // AVATAR PATH (LOCAL CACHE)
+      // -------------------------
+      const avatarPath1 = await getAvatarUrl(senderID).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(targetID).catch(() => null);
 
-      // Message text (only body, not on image)
+      // Message text (only body)
       const msg = `${name1} + ${name2}\nউষ্টা খাইয়া দূরে গিয়া মর 🤣🔥`;
 
       // -------------------------
-      // IMAGE BUILDING
+      // IMAGE HELPERS
       // -------------------------
-
       const streamToBuffer = (stream) =>
         new Promise((resolve, reject) => {
           const chunks = [];
@@ -61,6 +64,41 @@ module.exports = {
           stream.on("error", reject);
         });
 
+      function placeholder(name) {
+        const img = new Jimp(150, 150, "#777");
+        const letter = (String(name)[0] || "U").toUpperCase();
+
+        return Jimp.loadFont(Jimp.FONT_SANS_64_WHITE).then(font => {
+          img.print(
+            font,
+            0,
+            0,
+            {
+              text: letter,
+              alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+              alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+            },
+            150,
+            150
+          );
+          return img;
+        });
+      }
+
+      async function loadAvatar(path, fallbackName) {
+        try {
+          if (!path || !fs.existsSync(path)) {
+            return await placeholder(fallbackName);
+          }
+          return await Jimp.read(path);
+        } catch {
+          return await placeholder(fallbackName);
+        }
+      }
+
+      // -------------------------
+      // LOAD BACKGROUND
+      // -------------------------
       const bgUrls = [
         "https://raw.githubusercontent.com/bdrakib12/baby-goat-bot/main/scripts/cmds/cache/usta.png",
         "https://i.postimg.cc/XqzNssHJ/usta.png"
@@ -75,53 +113,29 @@ module.exports = {
         } catch {}
       }
 
-      if (!bgBuffer) return message.reply("❌ Background PNG লোড করা যায়নি।");
+      if (!bgBuffer) {
+        return message.reply("❌ Background PNG লোড করা যায়নি।");
+      }
 
       const bg = await Jimp.read(bgBuffer);
 
-      // Avatar loader
-      async function loadAvatar(url, fallbackName) {
-        if (!url) return placeholder(fallbackName);
-
-        try {
-          const s = await getStreamFromURL(url);
-          const buf = await streamToBuffer(s);
-          return await Jimp.read(buf);
-        } catch {
-          return placeholder(fallbackName);
-        }
-      }
-
-      function placeholder(name) {
-        const img = new Jimp(100, 100, "#777");
-        const initials = (String(name)[0] || "U").toUpperCase();
-
-        return Jimp.loadFont(Jimp.FONT_SANS_32_WHITE).then(font => {
-          img.print(font, 0, 0, {
-            text: initials,
-            alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-          }, 100, 100);
-
-          return img;
-        });
-      }
-
-      let img1 = await loadAvatar(avatarUrl1, name1);
-      let img2 = await loadAvatar(avatarUrl2, name2);
-
-      if (img1 instanceof Promise) img1 = await img1;
-      if (img2 instanceof Promise) img2 = await img2;
+      // -------------------------
+      // LOAD AVATARS
+      // -------------------------
+      let img1 = await loadAvatar(avatarPath1, name1);
+      let img2 = await loadAvatar(avatarPath2, name2);
 
       img1 = img1.resize(150, 150).circle();
       img2 = img2.resize(150, 150).circle();
 
-      // Place avatars ONLY (no text)
+      // Place avatars
       bg.composite(img1, 900, 160);
       bg.composite(img2, 400, 130);
 
+      // -------------------------
+      // FINAL OUTPUT
+      // -------------------------
       const outBuffer = await bg.getBufferAsync(Jimp.MIME_PNG);
-
       const imgStream = Readable.from(outBuffer);
       imgStream.path = "usta.png";
 
@@ -131,7 +145,7 @@ module.exports = {
       });
 
     } catch (err) {
-      console.error(err);
+      console.error("usta command error:", err);
       return message.reply("❌ Usta command failed.");
     }
   }
