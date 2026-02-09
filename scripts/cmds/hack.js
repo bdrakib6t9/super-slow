@@ -1,13 +1,15 @@
 const { loadImage, createCanvas } = require("canvas");
 const fs = require("fs-extra");
-const axios = require("axios");
+const path = require("path");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
+const { getStreamFromURL } = global.utils;
 
 module.exports = {
   config: {
     name: "hack",
     author: "Rakib",
     countDown: 5,
-    role: 2,
+    role: 0,
     category: "fun",
     shortDescription: {
       en: "Generates a 'hacking' image (mention or reply)"
@@ -50,9 +52,11 @@ module.exports = {
     });
   },
 
-  onStart: async function ({ api, event }) {
-    const pathImg = __dirname + "/tmp/hack_bg.png";
-    const pathAvt = __dirname + "/tmp/hack_avt.png";
+  onStart: async function ({ api, event, usersData }) {
+    const tmpDir = path.join(__dirname, "tmp");
+    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
+
+    const pathImg = path.join(tmpDir, `hack_${Date.now()}.png`);
 
     // ✅ target user (mention OR reply OR self)
     let targetID = Object.keys(event.mentions || {})[0];
@@ -63,35 +67,28 @@ module.exports = {
       targetID = event.senderID;
     }
 
-    // user info
-    const userInfo = await api.getUserInfo(targetID);
-    const name = userInfo[targetID].name;
+    // user name
+    const name = await usersData.getName(targetID).catch(() => "Unknown User");
 
     // 🔥 background
     const backgroundURL =
       "https://drive.google.com/uc?export=download&id=1pJgY4FAl1vwKs7eq9MPRVykFscZ6Mvjx";
 
-    // avatar
-    const avatarData = (
-      await axios.get(
-        `https://graph.facebook.com/${targetID}/picture?width=720&height=720&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`,
-        { responseType: "arraybuffer" }
-      )
-    ).data;
+    // load background
+    const bgStream = await getStreamFromURL(backgroundURL);
+    const bgBuffer = await streamToBuffer(bgStream);
+    const baseImage = await loadImage(bgBuffer);
 
-    fs.writeFileSync(pathAvt, Buffer.from(avatarData));
-
-    // background data
-    const bgData = (
-      await axios.get(backgroundURL, { responseType: "arraybuffer" })
-    ).data;
-
-    fs.writeFileSync(pathImg, Buffer.from(bgData));
+    // 🔥 avatar (local cached path)
+    let avatar;
+    try {
+      const avatarPath = await getAvatarUrl(targetID);
+      avatar = await loadImage(avatarPath);
+    } catch {
+      avatar = null;
+    }
 
     // canvas setup
-    const baseImage = await loadImage(pathImg);
-    const avatar = await loadImage(pathAvt);
-
     const canvas = createCanvas(baseImage.width, baseImage.height);
     const ctx = canvas.getContext("2d");
 
@@ -103,15 +100,15 @@ module.exports = {
     ctx.textAlign = "start";
 
     const lines = await this.wrapText(ctx, name, 1160);
-    ctx.fillText(lines.join("\n"), 200, 497);
+    if (lines) ctx.fillText(lines.join("\n"), 200, 497);
 
     // avatar position
-    ctx.drawImage(avatar, 83, 437, 100, 101);
+    if (avatar) {
+      ctx.drawImage(avatar, 83, 437, 100, 101);
+    }
 
     // export
-    const imageBuffer = canvas.toBuffer();
-    fs.writeFileSync(pathImg, imageBuffer);
-    fs.removeSync(pathAvt);
+    fs.writeFileSync(pathImg, canvas.toBuffer());
 
     return api.sendMessage(
       {
@@ -124,3 +121,13 @@ module.exports = {
     );
   }
 };
+
+/* ========== HELPERS ========== */
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", c => chunks.push(c));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+      }
