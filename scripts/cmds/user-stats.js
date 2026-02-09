@@ -1,9 +1,9 @@
 const { createCanvas, loadImage } = require("canvas");
-const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const moment = require("moment");
 const utils = require("../../utils.js");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 /* ================= HELPERS ================= */
 function formatNumber(num) {
@@ -24,7 +24,7 @@ module.exports = {
   config: {
     name: "user-stats",
     aliases: ["uses", "userstats"],
-    version: "7.1",
+    version: "7.2",
     author: "Rakib",
     countDown: 5,
     shortDescription: { en: "Show user info card" },
@@ -37,9 +37,9 @@ module.exports = {
     /* ========= TARGET USERS ========= */
     let targetIDs = [];
 
-    if (event.type === "message_reply") {
+    if (event.type === "message_reply" && event.messageReply?.senderID) {
       targetIDs = [String(event.messageReply.senderID)];
-    } else if (Object.keys(event.mentions).length > 0) {
+    } else if (Object.keys(event.mentions || {}).length > 0) {
       targetIDs = Object.keys(event.mentions);
     } else {
       targetIDs = [String(event.senderID)];
@@ -51,15 +51,15 @@ module.exports = {
       const user = await usersData.get(uid);
       if (!user) continue;
 
-      /* ================= AVATAR ================= */
+      /* ================= AVATAR (LOCAL CACHE) ================= */
       let avatar;
       try {
-        const avatarUrl = await usersData.getAvatarUrl(uid);
-        const res = await axios.get(avatarUrl, {
-          responseType: "arraybuffer",
-          timeout: 15000
-        });
-        avatar = await loadImage(res.data);
+        const avatarPath = await getAvatarUrl(uid);
+        if (avatarPath && fs.existsSync(avatarPath)) {
+          avatar = await loadImage(avatarPath);
+        } else {
+          avatar = await loadImage(path.join(__dirname, "default_avatar.png"));
+        }
       } catch {
         avatar = await loadImage(path.join(__dirname, "default_avatar.png"));
       }
@@ -113,11 +113,11 @@ module.exports = {
       const canvas = createCanvas(1600, 1400);
       const ctx = canvas.getContext("2d");
 
-      /* ================= BACKGROUND (WITH FALLBACK) ================= */
+      /* ================= BACKGROUND ================= */
       let bg;
       try {
         bg = await loadImage("https://i.imgur.com/Vc6j5ts.jpeg");
-      } catch (e) {
+      } catch {
         bg = await loadImage(
           "https://raw.githubusercontent.com/bdrakib123/rakib-goat-bot/main/scripts/cmds/cache/MuchaTseBle.jpeg"
         );
