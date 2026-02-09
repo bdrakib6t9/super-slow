@@ -1,11 +1,14 @@
-const jimp = require("jimp");
+const Jimp = require("jimp");
 const fs = require("fs");
+const path = require("path");
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
+const { getStreamFromURL } = global.utils;
 
 module.exports = {
   config: {
     name: "married",
     aliases: ["mrd"],
-    version: "2.1",
+    version: "2.2",
     author: "Rakib",
     countDown: 5,
     role: 0,
@@ -39,35 +42,38 @@ module.exports = {
       two = mentions[0];
     }
 
-    const path = await makeMarriedImage(one, two);
+    const imgPath = await makeMarriedImage(one, two);
 
     return message.reply(
       {
         body: getRandomMarriedText(),
-        attachment: fs.createReadStream(path)
+        attachment: fs.createReadStream(imgPath)
       },
-      () => fs.unlinkSync(path)
+      () => fs.unlinkSync(imgPath)
     );
   }
 };
 
-// ---------------- IMAGE PART ----------------
+/* ================= IMAGE PART ================= */
 
 async function makeMarriedImage(one, two) {
   const bgURL =
     "https://drive.google.com/uc?export=download&id=1Y4r9ONma3I44TNqLTVQBN-znDyv9j3Mx";
 
-  let avone = await jimp.read(
-    `https://graph.facebook.com/${one}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-  );
-  avone.circle();
+  // avatar paths (local cache)
+  const avatarPath1 = await getAvatarUrl(one).catch(() => null);
+  const avatarPath2 = await getAvatarUrl(two).catch(() => null);
 
-  let avtwo = await jimp.read(
-    `https://graph.facebook.com/${two}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`
-  );
+  const avone = await loadAvatar(avatarPath1, "A");
+  const avtwo = await loadAvatar(avatarPath2, "B");
+
+  avone.circle();
   avtwo.circle();
 
-  let img = await jimp.read(bgURL);
+  // background
+  const bgStream = await getStreamFromURL(bgURL);
+  const bgBuffer = await streamToBuffer(bgStream);
+  const img = await Jimp.read(bgBuffer);
 
   // keep original layout feel
   img
@@ -75,12 +81,48 @@ async function makeMarriedImage(one, two) {
     .composite(avone.resize(85, 85), 204, 160)
     .composite(avtwo.resize(80, 80), 315, 105);
 
-  const outPath = `married_${Date.now()}.png`;
+  const outPath = path.join(__dirname, `married_${Date.now()}.png`);
   await img.writeAsync(outPath);
   return outPath;
 }
 
-// ---------------- RANDOM TEXT ----------------
+/* ================= HELPERS ================= */
+
+async function loadAvatar(localPath, fallbackChar) {
+  try {
+    if (localPath && fs.existsSync(localPath)) {
+      return await Jimp.read(localPath);
+    }
+  } catch {}
+
+  // placeholder fallback
+  const img = new Jimp(100, 100, "#f5f5f5");
+  const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+  img.print(
+    font,
+    0,
+    0,
+    {
+      text: fallbackChar,
+      alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
+      alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
+    },
+    100,
+    100
+  );
+  return img;
+}
+
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", c => chunks.push(c));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+}
+
+/* ================= RANDOM TEXT ================= */
 
 function getRandomMarriedText() {
   const texts = [
@@ -93,4 +135,4 @@ function getRandomMarriedText() {
   ];
 
   return texts[Math.floor(Math.random() * texts.length)];
-  }
+    }
