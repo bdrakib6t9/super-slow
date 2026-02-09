@@ -5,8 +5,8 @@ const path = require("path");
 module.exports = {
   config: {
     name: "dhp",
-    aliases: ["dhp", "avatar"],
-    version: "1.0",
+    aliases: ["avatar"],
+    version: "1.1",
     author: "Rakib",
     role: 0,
     shortDescription: "download profile picture",
@@ -21,27 +21,24 @@ module.exports = {
     try {
       let uid;
 
-      // 🟢 Reply case
+      // 🔵 Reply → replied user
       if (event.type === "message_reply") {
         uid = event.messageReply.senderID;
       }
 
-      // 🟢 Mention case
-      else if (event.mentions) {
-  const mentionIDs = Object.keys(event.mentions);
-  if (mentionIDs.length > 0) {
-    uid = mentionIDs[0];
-  }
-}
+      // 🔵 Mention → first mentioned user
+      else if (Object.keys(event.mentions || {}).length > 0) {
+        uid = Object.keys(event.mentions)[0];
+      }
 
-      // 🟢 UID argument
+      // 🔵 UID argument
       else if (args[0]) {
         uid = args[0];
       }
 
-      // ❌ No target
+      // 🔵 Default → command sender
       else {
-        uid = event.senderID; // default: sender
+        uid = event.senderID;
       }
 
       const apiUrl = `https://rakib-api.vercel.app/api/fb-avatar?uid=${uid}&apikey=rakib69`;
@@ -50,7 +47,10 @@ module.exports = {
         responseType: "arraybuffer"
       });
 
-      const filePath = path.join(__dirname, `/cache/${uid}.jpg`);
+      const cacheDir = path.join(__dirname, "cache");
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
+      const filePath = path.join(cacheDir, `${uid}.jpg`);
       fs.writeFileSync(filePath, res.data);
 
       api.sendMessage(
