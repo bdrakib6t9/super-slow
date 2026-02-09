@@ -1,12 +1,13 @@
-const { getStreamFromURL } = global.utils;
 const Jimp = require("jimp");
 const fs = require("fs-extra");
 const path = require("path");
+const { getStreamFromURL } = global.utils;
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "slap",
-    version: "2.1",
+    version: "2.2",
     author: "Rakib",
     countDown: 5,
     role: 0,
@@ -27,30 +28,33 @@ module.exports = {
     }
   },
 
-  onStart: async function ({ event, message, usersData, args, getLang }) {
+  onStart: async function ({ event, message, args, getLang }) {
     try {
       const uid1 = event.senderID;
 
       // ✅ target user (mention OR reply)
       let uid2 = Object.keys(event.mentions || {})[0];
-      if (!uid2 && event.messageReply) {
+      if (!uid2 && event.messageReply?.senderID) {
         uid2 = event.messageReply.senderID;
       }
 
       // ❌ no target
-      if (!uid2)
+      if (!uid2) {
         return message.reply(getLang("noTag"));
-
-      // 🚫 restricted ID
-      if (uid2 === "100078140834638") {
-        return message.reply("Slap yourself Dude 🐸🐸!");
       }
 
-      // avatar urls
-      const avatarURL1 = await usersData.getAvatarUrl(uid1).catch(() => null);
-      const avatarURL2 = await usersData.getAvatarUrl(uid2).catch(() => null);
+      // -------------------------
+      // AVATAR PATHS (LOCAL CACHE)
+      // -------------------------
+      const avatarPath1 = await getAvatarUrl(uid1).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(uid2).catch(() => null);
 
-      // stream → buffer helper
+      // -------------------------
+      // BACKGROUND
+      // -------------------------
+      const bgUrl = "https://i.postimg.cc/QCtBbqWH/slap.jpg";
+      const bgStream = await getStreamFromURL(bgUrl);
+
       const streamToBuffer = (stream) =>
         new Promise((resolve, reject) => {
           const chunks = [];
@@ -59,26 +63,24 @@ module.exports = {
           stream.on("error", reject);
         });
 
-      // background
-      const bgUrl = "https://i.postimg.cc/QCtBbqWH/slap.jpg";
-      const bgStream = await getStreamFromURL(bgUrl);
       const bgBuffer = await streamToBuffer(bgStream);
       const bg = await Jimp.read(bgBuffer);
 
-      // avatar loader
-      async function loadAvatar(url) {
-        if (!url) return new Jimp(120, 120, "#999999");
+      // -------------------------
+      // AVATAR LOADER (PATH BASED)
+      // -------------------------
+      async function loadAvatar(localPath) {
         try {
-          const s = await getStreamFromURL(url);
-          const b = await streamToBuffer(s);
-          return await Jimp.read(b);
-        } catch {
-          return new Jimp(120, 120, "#999999");
-        }
+          if (localPath && fs.existsSync(localPath)) {
+            return await Jimp.read(localPath);
+          }
+        } catch {}
+
+        return new Jimp(120, 120, "#999999");
       }
 
-      let img1 = await loadAvatar(avatarURL1);
-      let img2 = await loadAvatar(avatarURL2);
+      let img1 = await loadAvatar(avatarPath1); // slapper
+      let img2 = await loadAvatar(avatarPath2); // victim
 
       // resize + circle
       img1.resize(120, 120).circle();
@@ -92,7 +94,9 @@ module.exports = {
       bg.composite(img2, 120, 200); // victim
       bg.composite(img1, 420, 80);  // slapper
 
-      // temp folder
+      // -------------------------
+      // TEMP FILE
+      // -------------------------
       const dir = path.join(__dirname, "tmp");
       if (!fs.existsSync(dir)) fs.mkdirSync(dir);
 
@@ -106,11 +110,13 @@ module.exports = {
           body: content || "Bópppp 😵‍💫😵",
           attachment: fs.createReadStream(filePath)
         },
-        () => fs.unlinkSync(filePath)
+        () => {
+          if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
       );
 
     } catch (err) {
-      console.error(err);
+      console.error("slap command error:", err);
       return message.reply("❌ Slap command failed.");
     }
   }
