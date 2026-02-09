@@ -197,7 +197,8 @@ module.exports = async function (databaseType, userModel, api, fakeGraphql) {
 		}
 	}
 	
-const fs = require("fs-extra");
+	const fs = require("fs-extra");
+
 async function getAvatarUrl(uid) {
   if (!uid || isNaN(uid)) return null;
 
@@ -205,10 +206,7 @@ async function getAvatarUrl(uid) {
     const res = await axios.get(
       "https://rakib-api.vercel.app/api/fb-avatar",
       {
-        params: {
-          uid,
-          apikey: "rakib69"
-        },
+        params: { uid, apikey: "rakib69" },
         responseType: "arraybuffer",
         timeout: 10000
       }
@@ -220,7 +218,8 @@ async function getAvatarUrl(uid) {
     const filePath = path.join(cacheDir, `${uid}.jpg`);
     fs.writeFileSync(filePath, res.data);
 
-    return filePath; // ✅ local path
+    // 🔑 THIS IS THE KEY LINE
+    return `file://${filePath}`;
 
   } catch (err) {
     console.error("getAvatarUrl error:", err.message);
