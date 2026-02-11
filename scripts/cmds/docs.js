@@ -4,11 +4,11 @@ module.exports = {
   config: {
     name: "docs",
     aliases: ["gdc"],
-    version: "1.1",
+    version: "1.3",
     author: "Rakib",
-    role: 2,
+    role: 0,
     shortDescription: "load command from google docs",
-    longDescription: "deploy js code from google docs link",
+    longDescription: "deploy js code from google docs link (owner only)",
     category: "Bot account",
     guide: {
       en: "Reply a Google Docs link and type: docs <commandName>"
@@ -17,8 +17,8 @@ module.exports = {
 
   onStart: async function ({ api, event, args }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check (external file, string-safe)
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "❌ | You aren't allowed to use this command.",
         event.threadID,
