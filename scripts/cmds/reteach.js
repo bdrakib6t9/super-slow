@@ -4,7 +4,7 @@ const ownerUID = require("../../rakib/customApi/ownerUid.js");
 module.exports = {
   config: {
     name: "reteach",
-    version: "1.3",
+    version: "1.4",
     author: "rakib",
     role: 0,
     category: "ai",
@@ -15,8 +15,8 @@ module.exports = {
 
   onStart: async function ({ api, event, args }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check (string-safe)
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "eta jar kaj se korbe - tomar dorkar nai",
         event.threadID,
@@ -26,7 +26,6 @@ module.exports = {
 
     const input = args.join(" ");
 
-    // support - and |
     let splitChar = input.includes("|")
       ? "|"
       : input.includes("-")
