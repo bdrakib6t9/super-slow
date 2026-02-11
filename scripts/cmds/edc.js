@@ -4,11 +4,11 @@ module.exports = {
   config: {
     name: "edc",
     aliases: ["edc"],
-    version: "1.1",
+    version: "1.2",
     author: "Rakib",
-    role: 2,
+    role: 0,
     shortDescription: "deploy event file",
-    longDescription: "load js file into events folder",
+    longDescription: "load js file into events folder (owner only)",
     category: "Bot account",
     guide: {
       en: "Reply a link and type: edc <eventName>"
@@ -17,8 +17,8 @@ module.exports = {
 
   onStart: async function ({ api, event, args }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check (string-safe)
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "❌ | You aren't allowed to use this command.",
         event.threadID,
