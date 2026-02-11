@@ -4,9 +4,9 @@ module.exports = {
   config: {
     name: "debug",
     aliases: ["dg"],
-    version: "1.1",
+    version: "1.2",
     author: "Rakib",
-    role: 2,
+    role: 0,
     shortDescription: "Debug why bot not working in this chat",
     longDescription: "Diagnose bot permission, request & thread issues",
     category: "Utility"
@@ -14,8 +14,8 @@ module.exports = {
 
   onStart: async function ({ event, api }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check (string-safe)
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "❌ এই কমান্ডটি শুধু Bot Owner ব্যবহার করতে পারবেন।",
         event.threadID,
@@ -98,6 +98,6 @@ module.exports = {
       report += "➡️ If still not working, FB silent block possible\n";
     }
 
-    api.sendMessage(report, threadID, event.messageID);
+    return api.sendMessage(report, threadID, event.messageID);
   }
 };
