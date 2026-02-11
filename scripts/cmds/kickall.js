@@ -1,10 +1,12 @@
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
+
 module.exports = {
   config: {
     name: "kickall",
-    version: "1.0",
+    version: "1.1",
     author: "Rakib",
     countDown: 10,
-    role: 0, // permission manually checked
+    role: 0,
     description: {
       vi: "Kick toàn bộ thành viên trong nhóm",
       en: "Kick all members in the group"
@@ -30,32 +32,36 @@ module.exports = {
   },
 
   onStart: async function ({ api, event, message, threadsData, getLang }) {
-    const OWNER_UID = "61581351693349";
 
-    // owner check
-    if (event.senderID !== OWNER_UID)
+    // 🔒 Owner Check (external file)
+    if (!ownerUID.includes(event.senderID))
       return message.reply(getLang("onlyOwner"));
 
-    // bot admin check
-    const adminIDs = await threadsData.get(event.threadID, "adminIDs");
     const botID = api.getCurrentUserID();
+
+    // 🔍 Bot Admin Check
+    const adminIDs = await threadsData.get(event.threadID, "adminIDs");
     if (!adminIDs.includes(botID))
       return message.reply(getLang("needAdmin"));
 
-    // get all members
+    // 📌 Get thread info
     const threadInfo = await api.getThreadInfo(event.threadID);
     const members = threadInfo.participantIDs;
 
-    // separate admins & members
+    // Separate admins (excluding bot & owners)
     const admins = threadInfo.adminIDs
       .map(e => e.id)
-      .filter(uid => uid !== botID && uid !== OWNER_UID);
+      .filter(uid => uid !== botID && !ownerUID.includes(uid));
 
+    // Separate normal members
     const normalMembers = members.filter(
-      uid => uid !== botID && uid !== OWNER_UID && !admins.includes(uid)
+      uid =>
+        uid !== botID &&
+        !ownerUID.includes(uid) &&
+        !admins.includes(uid)
     );
 
-    // kick admins first
+    // 🚫 Kick admins first
     for (const uid of admins) {
       try {
         await api.removeUserFromGroup(uid, event.threadID);
@@ -63,7 +69,7 @@ module.exports = {
       } catch (e) {}
     }
 
-    // kick normal members
+    // 🚫 Kick normal members
     for (const uid of normalMembers) {
       try {
         await api.removeUserFromGroup(uid, event.threadID);
