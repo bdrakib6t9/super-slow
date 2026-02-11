@@ -3,7 +3,7 @@ const ownerUID = require("../../rakib/customApi/ownerUid.js");
 module.exports = {
   config: {
     name: "kickall",
-    version: "1.1",
+    version: "1.2",
     author: "Rakib",
     countDown: 10,
     role: 0,
@@ -33,8 +33,8 @@ module.exports = {
 
   onStart: async function ({ api, event, message, threadsData, getLang }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID))
+    // 🔒 Owner Check (string-safe)
+    if (!ownerUID.includes(String(event.senderID)))
       return message.reply(getLang("onlyOwner"));
 
     const botID = api.getCurrentUserID();
@@ -51,13 +51,13 @@ module.exports = {
     // Separate admins (excluding bot & owners)
     const admins = threadInfo.adminIDs
       .map(e => e.id)
-      .filter(uid => uid !== botID && !ownerUID.includes(uid));
+      .filter(uid => uid !== botID && !ownerUID.includes(String(uid)));
 
     // Separate normal members
     const normalMembers = members.filter(
       uid =>
         uid !== botID &&
-        !ownerUID.includes(uid) &&
+        !ownerUID.includes(String(uid)) &&
         !admins.includes(uid)
     );
 
