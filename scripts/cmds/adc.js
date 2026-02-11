@@ -4,10 +4,10 @@ module.exports = {
   config: {
     name: "adc",
     aliases: ["adc"],
-    version: "1.4",
+    version: "1.5",
     author: "Rakib",
     countDown: 5,
-    role: 2,
+    role: 0,
     shortDescription: {
       en: "Apply command from Google Drive (.txt)"
     },
@@ -22,8 +22,8 @@ module.exports = {
 
   onStart: async function ({ api, event, args }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check (string-safe)
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "❌ | You are not allowed to use this command.",
         event.threadID,
@@ -90,6 +90,7 @@ module.exports = {
         threadID,
         messageID
       );
+
     } catch (err) {
       return api.sendMessage(
         `❌ | Failed to apply ${fileName}.js`,
