@@ -4,7 +4,7 @@ module.exports = {
 	config: {
 		name: "leaveall",
 		author: "Rakib",
-		version: "1.6.0",
+		version: "1.6.1",
 		countDown: 10,
 		role: 0,
 		category: "Admin",
@@ -15,8 +15,8 @@ module.exports = {
 
 	onStart: async function ({ api, event }) {
 
-		// 🔒 Owner Check (external file)
-		if (!ownerUID.includes(event.senderID)) {
+		// 🔒 Owner Check (string-safe)
+		if (!ownerUID.includes(String(event.senderID))) {
 			return api.sendMessage(
 				"❌ এই কমান্ডটা শুধু বট ওনার ব্যবহার করতে পারবে।",
 				event.threadID,
