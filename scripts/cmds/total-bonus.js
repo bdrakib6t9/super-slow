@@ -1,10 +1,11 @@
 const utils = require("../../utils.js");
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
 
 module.exports = {
   config: {
     name: "total-bonus",
     aliases: ["tb"],
-    version: "4.0",
+    version: "4.1",
     author: "Rakib",
     role: 0,
     category: "owner",
@@ -20,10 +21,11 @@ module.exports = {
 
   onStart: async function ({ message, event, args, usersData }) {
 
-    /* ===== OWNER UID ===== */
-    const OWNER_UID = "61581351693349";
-    if (event.senderID !== OWNER_UID)
+    /* ===== OWNER CHECK (External File) ===== */
+    if (!ownerUID.includes(event.senderID))
       return message.reply("❌ This command is owner-only.");
+
+    const OWNER_UID = event.senderID; // dynamic owner support
 
     const moneyArg = args[0];
     const expArg = args[1];
@@ -38,7 +40,7 @@ module.exports = {
     let wallet = utils.safeBigInt(user.money);
     let bank   = utils.safeBigInt(data.bank);
 
-    /* ===== PARSE MONEY (🔥 NO LIMIT, NO REGEX) ===== */
+    /* ===== PARSE MONEY ===== */
     let moneyAdd = 0n;
     if (moneyArg) {
       moneyAdd = utils.parseAmount(
