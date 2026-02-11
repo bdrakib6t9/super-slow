@@ -1,8 +1,10 @@
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
+
 module.exports = {
   config: {
     name: "adc",
     aliases: ["adc"],
-    version: "1.3",
+    version: "1.4",
     author: "Rakib",
     countDown: 5,
     role: 2,
@@ -19,13 +21,15 @@ module.exports = {
   },
 
   onStart: async function ({ api, event, args }) {
-    const OWNER_UID = "61581351693349";
-    if (event.senderID !== OWNER_UID)
+
+    // 🔒 Owner Check (external file)
+    if (!ownerUID.includes(event.senderID)) {
       return api.sendMessage(
         "❌ | You are not allowed to use this command.",
         event.threadID,
         event.messageID
       );
+    }
 
     const fs = require("fs");
     const path = require("path");
@@ -34,43 +38,51 @@ module.exports = {
     const { threadID, messageID, messageReply, type } = event;
     const fileName = args[0];
 
-    if (!fileName)
+    if (!fileName) {
       return api.sendMessage(
         "❌ | Usage: reply Drive .txt link and type: adc <commandName>",
         threadID,
         messageID
       );
+    }
 
-    if (type !== "message_reply" || !messageReply.body)
+    if (type !== "message_reply" || !messageReply?.body) {
       return api.sendMessage(
         "❌ | Please reply to a Google Drive .txt file link.",
         threadID,
         messageID
       );
+    }
 
     const driveLink = messageReply.body;
-    if (!driveLink.includes("drive.google"))
+
+    if (!driveLink.includes("drive.google")) {
       return api.sendMessage(
         "❌ | This is not a Google Drive link.",
         threadID,
         messageID
       );
+    }
 
-    // extract file ID
+    // Extract file ID
     const idMatch = driveLink.match(/[-\w]{25,}/);
-    if (!idMatch)
+    if (!idMatch) {
       return api.sendMessage(
         "❌ | Invalid Google Drive link.",
         threadID,
         messageID
       );
+    }
 
     const fileID = idMatch[0];
     const downloadURL = `https://drive.google.com/uc?id=${fileID}&export=download`;
     const savePath = path.join(__dirname, `${fileName}.js`);
 
     try {
-      const res = await axios.get(downloadURL, { responseType: "arraybuffer" });
+      const res = await axios.get(downloadURL, {
+        responseType: "arraybuffer"
+      });
+
       fs.writeFileSync(savePath, res.data);
 
       return api.sendMessage(
