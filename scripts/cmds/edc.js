@@ -1,8 +1,10 @@
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
+
 module.exports = {
   config: {
     name: "edc",
     aliases: ["edc"],
-    version: "1.0",
+    version: "1.1",
     author: "Rakib",
     role: 2,
     shortDescription: "deploy event file",
@@ -14,9 +16,15 @@ module.exports = {
   },
 
   onStart: async function ({ api, event, args }) {
-    const permission = ["61581351693349"];
-    if (!permission.includes(event.senderID))
-      return api.sendMessage("❌ | You aren't allowed to use this command.", event.threadID, event.messageID);
+
+    // 🔒 Owner Check (external file)
+    if (!ownerUID.includes(event.senderID)) {
+      return api.sendMessage(
+        "❌ | You aren't allowed to use this command.",
+        event.threadID,
+        event.messageID
+      );
+    }
 
     const fs = require("fs");
     const axios = require("axios");
@@ -27,19 +35,21 @@ module.exports = {
     const { messageReply, threadID, messageID } = event;
     const name = args[0];
 
-    if (!messageReply || !name)
+    if (!messageReply || !name) {
       return api.sendMessage(
         "❌ Reply to a code link and use: edc <eventName>",
         threadID,
         messageID
       );
+    }
 
     const text = messageReply.body;
     const urlRegex = /https?:\/\/[^\s]+/;
     const url = text.match(urlRegex);
 
-    if (!url)
+    if (!url) {
       return api.sendMessage("❌ Invalid link.", threadID, messageID);
+    }
 
     const savePath = path.join(__dirname, "../events", `${name}.js`);
 
