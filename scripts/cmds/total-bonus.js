@@ -5,7 +5,7 @@ module.exports = {
   config: {
     name: "total-bonus",
     aliases: ["tb"],
-    version: "4.1",
+    version: "4.2",
     author: "Rakib",
     role: 0,
     category: "owner",
@@ -21,11 +21,11 @@ module.exports = {
 
   onStart: async function ({ message, event, args, usersData }) {
 
-    /* ===== OWNER CHECK (External File) ===== */
-    if (!ownerUID.includes(event.senderID))
+    /* ===== OWNER CHECK (string-safe) ===== */
+    if (!ownerUID.includes(String(event.senderID)))
       return message.reply("❌ This command is owner-only.");
 
-    const OWNER_UID = event.senderID; // dynamic owner support
+    const OWNER_UID = String(event.senderID);
 
     const moneyArg = args[0];
     const expArg = args[1];
@@ -66,7 +66,7 @@ module.exports = {
     /* ===== APPLY MONEY ===== */
     wallet += moneyAdd;
 
-    /* ===== AUTO BANK LIMIT (150cs SYSTEM) ===== */
+    /* ===== AUTO BANK LIMIT */
     const fixed = utils.applyWalletLimit(wallet, bank);
     wallet = fixed.wallet;
     bank   = fixed.bank;
