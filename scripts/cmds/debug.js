@@ -1,10 +1,10 @@
-const OWNER_ID = "61581351693349";
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
 
 module.exports = {
   config: {
     name: "debug",
-    aliases: ["dg", "check"],
-    version: "1.0",
+    aliases: ["dg"],
+    version: "1.1",
     author: "Rakib",
     role: 2,
     shortDescription: "Debug why bot not working in this chat",
@@ -13,7 +13,9 @@ module.exports = {
   },
 
   onStart: async function ({ event, api }) {
-    if (event.senderID !== OWNER_ID) {
+
+    // 🔒 Owner Check (external file)
+    if (!ownerUID.includes(event.senderID)) {
       return api.sendMessage(
         "❌ এই কমান্ডটি শুধু Bot Owner ব্যবহার করতে পারবেন।",
         event.threadID,
@@ -76,17 +78,22 @@ module.exports = {
     report += "\n━━━━━━━━━━━━━━━━━━\n";
     report += "🧠 DIAGNOSIS:\n";
 
+    const botID = api.getCurrentUserID();
+    const isAdminNow = threadInfo.isGroup
+      ? threadInfo.adminIDs.map(e => e.id).includes(botID)
+      : true;
+
     if (!sendTest) {
       report += "❌ Bot cannot send message\n";
       report += "➡️ Possible reasons:\n";
       report += "• Message request not accepted\n";
       report += "• Bot restricted / blocked by Facebook\n";
-    } else if (threadInfo.isGroup && !threadInfo.adminIDs
-      .map(e => e.id)
-      .includes(api.getCurrentUserID())) {
+    } 
+    else if (threadInfo.isGroup && !isAdminNow) {
       report += "⚠️ Bot is not admin\n";
       report += "➡️ Ask group admin to make bot admin\n";
-    } else {
+    } 
+    else {
       report += "✅ Bot should work normally here\n";
       report += "➡️ If still not working, FB silent block possible\n";
     }
