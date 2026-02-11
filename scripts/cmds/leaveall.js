@@ -1,8 +1,10 @@
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
+
 module.exports = {
 	config: {
 		name: "leaveall",
 		author: "Rakib",
-		version: "1.5.1",
+		version: "1.6.0",
 		countDown: 10,
 		role: 0,
 		category: "Admin",
@@ -12,31 +14,41 @@ module.exports = {
 	},
 
 	onStart: async function ({ api, event }) {
-		const OWNER_UID = "61581351693349";
 
-		// owner check
-		if (event.senderID !== OWNER_UID) {
+		// 🔒 Owner Check (external file)
+		if (!ownerUID.includes(event.senderID)) {
 			return api.sendMessage(
 				"❌ এই কমান্ডটা শুধু বট ওনার ব্যবহার করতে পারবে।",
-				event.threadID
+				event.threadID,
+				event.messageID
 			);
 		}
 
-		api.getThreadList(100, null, ["INBOX"], (err, list) => {
-			if (err) return api.sendMessage("Error occurred!", event.threadID);
+		api.getThreadList(100, null, ["INBOX"], async (err, list) => {
+			if (err)
+				return api.sendMessage(
+					"❌ Error occurred!",
+					event.threadID,
+					event.messageID
+				);
 
-			list.forEach(item => {
+			const botID = api.getCurrentUserID();
+			let count = 0;
+
+			for (const item of list) {
 				if (item.isGroup === true && item.threadID !== event.threadID) {
-					api.removeUserFromGroup(
-						api.getCurrentUserID(),
-						item.threadID
-					);
+					try {
+						await api.removeUserFromGroup(botID, item.threadID);
+						count++;
+						await new Promise(r => setTimeout(r, 500));
+					} catch (e) {}
 				}
-			});
+			}
 
-			api.sendMessage(
-				"✅ সব গ্রুপ থেকে বট সফলভাবে লিভ করেছে।",
-				event.threadID
+			return api.sendMessage(
+				`✅ বট সফলভাবে ${count} টি গ্রুপ থেকে লিভ করেছে।`,
+				event.threadID,
+				event.messageID
 			);
 		});
 	}
