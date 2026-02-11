@@ -1,10 +1,11 @@
 const utils = require("../../utils.js");
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
 
 module.exports = {
   config: {
     name: "owner-game",
     aliases: ["og"],
-    version: "1.2",
+    version: "1.3",
     author: "Rakib",
     role: 0,
     category: "owner",
@@ -20,10 +21,11 @@ module.exports = {
 
   onStart: async function ({ message, event, args, usersData }) {
 
-    /* ===== OWNER UID ===== */
-    const OWNER_UID = "61581351693349";
-    if (event.senderID !== OWNER_UID)
+    /* ===== OWNER CHECK (External File) ===== */
+    if (!ownerUID.includes(event.senderID))
       return message.reply("❌ This command is owner-only.");
+
+    const OWNER_UID = event.senderID; // dynamic owner support
 
     /* ===== ARG CHECK ===== */
     const betArg = args[0];
