@@ -1,8 +1,10 @@
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
+
 module.exports = {
   config: {
     name: "docs",
     aliases: ["gdc"],
-    version: "1.0",
+    version: "1.1",
     author: "Rakib",
     role: 2,
     shortDescription: "load command from google docs",
@@ -14,13 +16,15 @@ module.exports = {
   },
 
   onStart: async function ({ api, event, args }) {
-    const permission = ["61581351693349"];
-    if (!permission.includes(event.senderID))
+
+    // 🔒 Owner Check (external file)
+    if (!ownerUID.includes(event.senderID)) {
       return api.sendMessage(
         "❌ | You aren't allowed to use this command.",
         event.threadID,
         event.messageID
       );
+    }
 
     const axios = require("axios");
     const fs = require("fs");
@@ -29,29 +33,33 @@ module.exports = {
     const { messageReply, threadID, messageID } = event;
     const name = args[0];
 
-    if (!messageReply || !name)
+    if (!messageReply || !name) {
       return api.sendMessage(
         "❌ Reply to a Google Docs link and use: docs <commandName>",
         threadID,
         messageID
       );
+    }
 
     const text = messageReply.body;
-    if (!text.includes("docs.google.com/document"))
+
+    if (!text.includes("docs.google.com/document")) {
       return api.sendMessage(
         "❌ This is not a valid Google Docs link.",
         threadID,
         messageID
       );
+    }
 
     // 📌 Extract document ID
     const match = text.match(/\/d\/([a-zA-Z0-9-_]+)/);
-    if (!match)
+    if (!match) {
       return api.sendMessage(
         "❌ Cannot extract document ID.",
         threadID,
         messageID
       );
+    }
 
     const docId = match[1];
 
@@ -62,12 +70,13 @@ module.exports = {
     try {
       const res = await axios.get(exportUrl, { responseType: "text" });
 
-      if (!res.data || res.data.length < 10)
+      if (!res.data || res.data.length < 10) {
         return api.sendMessage(
           "❌ Empty or invalid document content.",
           threadID,
           messageID
         );
+      }
 
       fs.writeFileSync(savePath, res.data, "utf-8");
 
@@ -76,6 +85,7 @@ module.exports = {
         threadID,
         messageID
       );
+
     } catch (err) {
       return api.sendMessage(
         "❌ Failed to fetch Google Docs content.\nMake sure the doc is PUBLIC.",
