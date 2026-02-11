@@ -4,7 +4,7 @@ const ownerUID = require("../../rakib/customApi/ownerUid.js");
 module.exports = {
   config: {
     name: "file",
-    version: "1.8",
+    version: "1.9",
     author: "hoon",
     countDown: 5,
     role: 0,
@@ -14,8 +14,8 @@ module.exports = {
 
   onStart: async function ({ args, api, event }) {
 
-    // 🔒 Owner Check (external file)
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check (string-safe)
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "❌ | You are not allowed to use this command.",
         event.threadID,
