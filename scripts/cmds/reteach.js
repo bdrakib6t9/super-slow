@@ -1,11 +1,10 @@
 const axios = require("axios");
-
-const OWNER_UID = "61581351693349";
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
 
 module.exports = {
   config: {
     name: "reteach",
-    version: "1.2",
+    version: "1.3",
     author: "rakib",
     role: 0,
     category: "ai",
@@ -16,8 +15,8 @@ module.exports = {
 
   onStart: async function ({ api, event, args }) {
 
-    // 🔒 owner check
-    if (event.senderID !== OWNER_UID) {
+    // 🔒 Owner Check (external file)
+    if (!ownerUID.includes(event.senderID)) {
       return api.sendMessage(
         "eta jar kaj se korbe - tomar dorkar nai",
         event.threadID,
@@ -28,7 +27,11 @@ module.exports = {
     const input = args.join(" ");
 
     // support - and |
-    let splitChar = input.includes("|") ? "|" : input.includes("-") ? "-" : null;
+    let splitChar = input.includes("|")
+      ? "|"
+      : input.includes("-")
+      ? "-"
+      : null;
 
     if (!splitChar) {
       return api.sendMessage(
@@ -38,7 +41,9 @@ module.exports = {
       );
     }
 
-    const [question, newReply] = input.split(splitChar).map(t => t.trim());
+    const [question, newReply] = input
+      .split(splitChar)
+      .map(t => t.trim());
 
     if (!question || !newReply) {
       return api.sendMessage(
@@ -65,10 +70,14 @@ module.exports = {
         res.data?.result ||
         `✅ Reteach Successful\n🧠 ${question} → ${newReply}`;
 
-      api.sendMessage(msg, event.threadID, event.messageID);
+      return api.sendMessage(
+        msg,
+        event.threadID,
+        event.messageID
+      );
 
     } catch (e) {
-      api.sendMessage(
+      return api.sendMessage(
         "❌ API error",
         event.threadID,
         event.messageID
