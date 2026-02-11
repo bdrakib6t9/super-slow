@@ -5,7 +5,7 @@ module.exports = {
   config: {
     name: "owner-game",
     aliases: ["og"],
-    version: "1.3",
+    version: "1.4",
     author: "Rakib",
     role: 0,
     category: "owner",
@@ -21,11 +21,11 @@ module.exports = {
 
   onStart: async function ({ message, event, args, usersData }) {
 
-    /* ===== OWNER CHECK (External File) ===== */
-    if (!ownerUID.includes(event.senderID))
+    /* ===== OWNER CHECK (string-safe) ===== */
+    if (!ownerUID.includes(String(event.senderID)))
       return message.reply("❌ This command is owner-only.");
 
-    const OWNER_UID = event.senderID; // dynamic owner support
+    const OWNER_UID = String(event.senderID);
 
     /* ===== ARG CHECK ===== */
     const betArg = args[0];
@@ -58,15 +58,15 @@ module.exports = {
       );
 
     /* ===== OWNER GAME LOGIC ===== */
-    const WIN_RATE = 100; // always win
-    const BONUS_MULTIPLIER = 10n ** 13n; // 🔥 1q% = x10^13
+    const WIN_RATE = 100; 
+    const BONUS_MULTIPLIER = 10n ** 13n; 
 
     const winAmount = bet * BONUS_MULTIPLIER;
 
     // add profit
     wallet += winAmount;
 
-    /* ===== AUTO BANK LIMIT (150cs SYSTEM) ===== */
+    /* ===== AUTO BANK LIMIT */
     const fixed = utils.applyWalletLimit(wallet, bank);
     wallet = fixed.wallet;
     bank   = fixed.bank;
