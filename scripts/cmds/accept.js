@@ -5,10 +5,10 @@ module.exports = {
   config: {
     name: "accept",
     aliases: ["acp"],
-    version: "1.2",
+    version: "1.3",
     author: "Rakib",
     countDown: 8,
-    role: 2,
+    role: 0,
     shortDescription: "Accept/Delete friend requests (Owner only)",
     longDescription: "Accept or delete friend requests (Owner only)",
     category: "Utility",
@@ -16,8 +16,8 @@ module.exports = {
 
   onReply: async function ({ Reply, event, api }) {
 
-    // 🔒 Only owner can reply
-    if (!ownerUID.includes(event.senderID)) return;
+    // 🔒 Owner Check
+    if (!ownerUID.includes(String(event.senderID))) return;
 
     const { author, listRequest, messageID } = Reply;
     if (author !== event.senderID) return;
@@ -121,8 +121,8 @@ module.exports = {
 
   onStart: async function ({ event, api, commandName }) {
 
-    // 🔒 Only owner can start
-    if (!ownerUID.includes(event.senderID)) {
+    // 🔒 Owner Check
+    if (!ownerUID.includes(String(event.senderID))) {
       return api.sendMessage(
         "❌ এই কমান্ডটি শুধু Bot Owner ব্যবহার করতে পারবেন।",
         event.threadID,
@@ -174,7 +174,7 @@ module.exports = {
           author: event.senderID,
           unsendTimeout: setTimeout(() => {
             api.unsendMessage(info.messageID);
-          }, this.config.countDown * 20000)
+          }, module.exports.config.countDown * 20000)
         });
       },
       event.messageID
