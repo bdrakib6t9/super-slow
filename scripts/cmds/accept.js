@@ -1,12 +1,11 @@
 const moment = require("moment-timezone");
-
-const OWNER_ID = "61581351693349";
+const ownerUID = require("../../rakib/customApi/ownerUid.js");
 
 module.exports = {
   config: {
     name: "accept",
     aliases: ["acp"],
-    version: "1.1",
+    version: "1.2",
     author: "Rakib",
     countDown: 8,
     role: 2,
@@ -16,14 +15,14 @@ module.exports = {
   },
 
   onReply: async function ({ Reply, event, api }) {
+
     // 🔒 Only owner can reply
-    if (event.senderID !== OWNER_ID) return;
+    if (!ownerUID.includes(event.senderID)) return;
 
     const { author, listRequest, messageID } = Reply;
     if (author !== event.senderID) return;
 
     const args = event.body.replace(/ +/g, " ").toLowerCase().split(" ");
-
     clearTimeout(Reply.unsendTimeout);
 
     const form = {
@@ -121,8 +120,9 @@ module.exports = {
   },
 
   onStart: async function ({ event, api, commandName }) {
+
     // 🔒 Only owner can start
-    if (event.senderID !== OWNER_ID) {
+    if (!ownerUID.includes(event.senderID)) {
       return api.sendMessage(
         "❌ এই কমান্ডটি শুধু Bot Owner ব্যবহার করতে পারবেন।",
         event.threadID,
@@ -158,7 +158,7 @@ module.exports = {
       msg += `\n${i}. Name: ${user.node.name}`
         + `\nID: ${user.node.id}`
         + `\nURL: ${user.node.url.replace("www.facebook", "fb")}`
-        + `\nTime: ${moment(user.time * 1009)
+        + `\nTime: ${moment(user.time * 1000)
             .tz("Asia/Manila")
             .format("DD/MM/YYYY HH:mm:ss")}\n`;
     }
