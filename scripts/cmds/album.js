@@ -123,7 +123,8 @@ module.exports = {
 
         api.sendMessage(
           {
-            body: `🎬 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${selectedCategory}
+            body: `🚀 𝗧𝗘𝗦𝗦𝗔 𝗕𝗢𝗧 🤖
+🎬 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${selectedCategory}
 👤 Author: ${data.author}
 ✨ Enjoy your video!`,
             attachment: fs.createReadStream(filePath)
