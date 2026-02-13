@@ -9,7 +9,7 @@ module.exports = {
     version: "6.0",
     author: "Rakib",
     role: 0,
-    shortDescription: "Stylish TikTok Album",
+    shortDescription: "Rendom Video Album",
     category: "media",
     guide: {
       en: "{pn}"
