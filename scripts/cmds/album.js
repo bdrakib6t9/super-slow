@@ -6,10 +6,10 @@ const tikApi = require("../../rakib/customApi/tikApi");
 module.exports = {
   config: {
     name: "album",
-    version: "5.0",
+    version: "6.0",
     author: "Rakib",
     role: 0,
-    shortDescription: "Stylish Random Video Album",
+    shortDescription: "Stylish TikTok Album",
     category: "media",
     guide: {
       en: "{pn}"
@@ -88,15 +88,18 @@ module.exports = {
 
       const randomVideo = list[Math.floor(Math.random() * list.length)];
 
-      if (!randomVideo.play)
+      if (!randomVideo.video_id || !randomVideo.author?.unique_id)
         return api.editMessage(
-          "❌ Failed to extract video URL.",
+          "❌ Failed to extract video info.",
           loadingMsg.messageID,
           event.threadID
         );
 
+      // ✅ Build Original TikTok URL
+      const realUrl = `https://www.tiktok.com/@${randomVideo.author.unique_id}/video/${randomVideo.video_id}`;
+
       // 🔥 Step 2: Process via your API
-      const data = await tikApi(randomVideo.play);
+      const data = await tikApi(realUrl);
 
       if (data.error)
         return api.editMessage(
@@ -125,8 +128,9 @@ module.exports = {
           {
             body: `🚀 𝗧𝗘𝗦𝗦𝗔 𝗕𝗢𝗧 🤖
 🎬 𝐂𝐚𝐭𝐞𝐠𝐨𝐫𝐲: ${selectedCategory}
-👤 Author: ${data.author}
-✨ Enjoy your video!`,
+💥Enjoy your video…!
+
+✨Powered by Rakib API✨`,
             attachment: fs.createReadStream(filePath)
           },
           event.threadID,
