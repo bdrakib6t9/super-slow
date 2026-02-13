@@ -1,105 +1,89 @@
 const fs = require("fs");
-const Jimp = require("jimp");
-const { Readable } = require("stream");
+const path = require("path");
+const { createCanvas, loadImage } = require("canvas");
 const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
-
-/**
- * @author Rakib
- * Jail command – PURE JIMP + LOCAL AVATAR
- */
+const { getStreamFromURL } = global.utils;
 
 module.exports = {
   config: {
     name: "jail",
-    version: "4.1",
+    version: "1.0",
     author: "Rakib",
+    countDown: 5,
     role: 0,
     category: "fun",
-    cooldown: 10,
-    guide: "{prefix}jail @mention | reply | UID"
+    guide: "{p}jail @mention | reply | UID"
   },
 
-  onStart: async function ({ event, message, usersData }) {
+  onStart: async function ({ message, event }) {
     try {
-      const { messageReply, mentions, args } = event;
+      const senderID = event.senderID;
 
-      // -------------------------
-      // TARGET
-      // -------------------------
+      // ✅ target detection
       let targetID =
-        messageReply?.senderID ||
-        Object.keys(mentions || {})[0] ||
-        args[0];
+        event.messageReply?.senderID ||
+        Object.keys(event.mentions || {})[0] ||
+        event.args?.[0];
 
       if (!targetID) {
-        return message.reply("❌ কাউকে reply / mention / UID দিন।");
+        return message.reply("❌ Please mention, reply or give UID.");
       }
 
-      // -------------------------
-      // USER DATA
-      // -------------------------
-      const name = await usersData.getName(targetID).catch(() => "User");
+      // ✅ Get local avatar
       const avatarPath = await getAvatarUrl(targetID).catch(() => null);
-
-      if (!avatarPath || !fs.existsSync(avatarPath)) {
-        return message.reply("❌ Avatar পাওয়া যায়নি।");
+      if (!avatarPath) {
+        return message.reply("❌ Avatar not found.");
       }
 
-      // -------------------------
-      // BASE IMAGE
-      // -------------------------
-      let img = await Jimp.read(avatarPath);
-      img.resize(500, 500).grayscale().contrast(0.2);
+      // ✅ Jail overlay image (Google Drive)
+      const overlayURL =
+        "https://drive.google.com/uc?export=download&id=1aexhSHX74lye7q11bHcy8hDEXlWPFqK1";
 
-      // -------------------------
-      // DRAW JAIL BARS (PURE JIMP)
-      // -------------------------
-      const barColor = Jimp.rgbaToInt(0, 0, 0, 180);
-      const barWidth = 18;
-      const gap = 45;
+      const overlayStream = await getStreamFromURL(overlayURL);
+      const overlayBuffer = await streamToBuffer(overlayStream);
 
-      // vertical bars
-      for (let x = 0; x < img.bitmap.width; x += gap) {
-        for (let y = 0; y < img.bitmap.height; y++) {
-          for (let w = 0; w < barWidth; w++) {
-            if (x + w < img.bitmap.width) {
-              img.setPixelColor(barColor, x + w, y);
-            }
-          }
-        }
-      }
+      // ✅ Load images
+      const avatar = await loadImage(avatarPath);
+      const overlay = await loadImage(overlayBuffer);
 
-      // top bar
-      img.scan(0, 0, img.bitmap.width, 25, (_, __, idx) => {
-        img.bitmap.data.writeUInt32BE(barColor, idx);
-      });
+      // ✅ Create canvas (overlay size based)
+      const canvas = createCanvas(overlay.width, overlay.height);
+      const ctx = canvas.getContext("2d");
 
-      // bottom bar
-      img.scan(
-        0,
-        img.bitmap.height - 25,
-        img.bitmap.width,
-        25,
-        (_, __, idx) => {
-          img.bitmap.data.writeUInt32BE(barColor, idx);
-        }
+      // 🔵 Draw avatar full background
+      ctx.drawImage(avatar, 0, 0, canvas.width, canvas.height);
+
+      // 🔒 Draw jail overlay ON TOP
+      ctx.drawImage(overlay, 0, 0, canvas.width, canvas.height);
+
+      // ✅ Save temp
+      const tmpDir = path.join(__dirname, "tmp");
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir);
+
+      const outputPath = path.join(tmpDir, `jail_${Date.now()}.png`);
+      fs.writeFileSync(outputPath, canvas.toBuffer("image/png"));
+
+      return message.reply(
+        {
+          body: "🚔 You are now in Jail 🔒",
+          attachment: fs.createReadStream(outputPath)
+        },
+        () => fs.unlinkSync(outputPath)
       );
 
-      // -------------------------
-      // EXPORT
-      // -------------------------
-      const outBuffer = await img.getBufferAsync(Jimp.MIME_PNG);
-      const stream = Readable.from(outBuffer);
-      stream.path = "jail.png";
-
-      return message.reply({
-        body: `🚔 ${name} এখন জেলে 🔒`,
-        attachment: stream
-      });
-
     } catch (err) {
-      console.error("JAIL FINAL ERROR:", err);
+      console.error("jail error:", err);
       return message.reply("❌ Jail command failed.");
     }
   }
 };
+
+// helper
+function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", c => chunks.push(c));
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+    stream.on("error", reject);
+  });
+        }
