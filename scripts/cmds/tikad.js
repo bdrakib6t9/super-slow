@@ -55,12 +55,13 @@ module.exports = {
       writer.on("finish", () => {
         api.sendMessage(
           {
-            body: `🎵 TikTok Audio Downloaded
+            body: `🚀 𝗧𝗘𝗦𝗦𝗔 𝗕𝗢𝗧 🤖
+            🎵 TikTok Audio Downloaded
 
 👤 Author: ${data.author}
 📝 Title: ${data.title}
 
-Powered by Rakib API`,
+✨Powered by Rakib API✨`,
             attachment: fs.createReadStream(filePath)
           },
           event.threadID,
