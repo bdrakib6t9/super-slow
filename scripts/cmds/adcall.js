@@ -3,7 +3,7 @@ const ownBox = require("../../rakib/customApi/ownBox");
 module.exports = {
   config: {
     name: "adcall",
-    version: "2.0",
+    version: "3.0",
     author: "Rakib",
     role: 0,
     shortDescription: "Send message to admin groups",
@@ -37,20 +37,33 @@ module.exports = {
 
 📍 From Group ID: ${event.threadID}`;
 
-      // 🔥 Send to all admin groups
+      let successCount = 0;
+
       for (const threadID of ownBox) {
-        await api.sendMessage(forwardMsg, threadID);
+        try {
+          await api.sendMessage(forwardMsg, threadID);
+          successCount++;
+        } catch (err) {
+          console.log("Failed to send to:", threadID);
+        }
       }
 
-      api.sendMessage(
-        "✅ Your message has been sent to admin group(s).",
-        event.threadID
-      );
+      if (successCount > 0) {
+        api.sendMessage(
+          `✅ Message sent to ${successCount} admin group(s).`,
+          event.threadID
+        );
+      } else {
+        api.sendMessage(
+          "❌ Could not send to any admin group.",
+          event.threadID
+        );
+      }
 
     } catch (err) {
       console.error(err);
       api.sendMessage(
-        "❌ Failed to send message.",
+        "❌ Something went wrong.",
         event.threadID
       );
     }
