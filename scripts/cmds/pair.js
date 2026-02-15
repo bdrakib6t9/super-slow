@@ -1,87 +1,155 @@
+const { createCanvas, loadImage } = require("canvas");
+const fs = require("fs-extra");
+const path = require("path");
 const { getStreamFromURL } = global.utils;
-const Jimp = require("jimp");
-const { Readable } = require("stream");
-const fs = require("fs");
-const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "pair",
-    version: "4.1",
-    author: "hoon + Rakib",
-    category: "love",
-    guide: "{prefix}pair"
+    author: "Rakib",
+    version: "5.0",
+    category: "love"
   },
 
-  onStart: async function ({ event, threadsData, message, usersData }) {
+  onStart: async function ({ api, event, usersData }) {
     try {
-      const uidI = event.senderID;
+      const senderID = event.senderID;
 
-      // ---------- THREAD DATA ----------
-      const threadData = await threadsData.get(event.threadID);
-      if (!threadData) return message.reply("❌ Thread data not available.");
+      // ---------- USER INFO ----------
+      const senderData = await usersData.get(senderID);
+      const senderName = senderData?.name || "User";
 
-      const members = threadData.members || [];
-      const senderInfo = members.find(m => String(m.userID) === String(uidI));
-      if (!senderInfo) return message.reply("❌ Could not find your info in this group.");
+      const threadInfo = await api.getThreadInfo(event.threadID);
+      const members = threadInfo.userInfo;
 
-      // ---------- SENDER ----------
-      let name1 = await usersData.getName(uidI).catch(() => null);
-      if (!name1) name1 = senderInfo?.name || senderInfo?.fullName || "Unknown User";
-
-      const avatarPath1 = await getAvatarUrl(uidI).catch(() => null);
-
-      const gender1 = senderInfo?.gender;
-      if (!gender1 || !["MALE", "FEMALE"].includes(gender1)) {
-        return message.reply("❌ Couldn't determine your gender. Please update your profile.");
+      const myData = members.find(u => u.id == senderID);
+      if (!myData || !myData.gender) {
+        return api.sendMessage(
+          "⚠️ Could not determine your gender.",
+          event.threadID,
+          event.messageID
+        );
       }
 
-      const targetGender = gender1 === "MALE" ? "FEMALE" : "MALE";
+      const myGender = myData.gender;
 
-      const candidates = members.filter(
-        m =>
-          m.gender === targetGender &&
-          m.inGroup &&
-          String(m.userID) !== String(uidI)
-      );
+      // ---------- FIND MATCH ----------
+      let candidates = [];
+
+      if (myGender === "MALE") {
+        candidates = members.filter(
+          u => u.gender === "FEMALE" && u.id != senderID
+        );
+      } else if (myGender === "FEMALE") {
+        candidates = members.filter(
+          u => u.gender === "MALE" && u.id != senderID
+        );
+      } else {
+        return api.sendMessage(
+          "⚠️ Gender undefined.",
+          event.threadID,
+          event.messageID
+        );
+      }
 
       if (!candidates.length) {
-        return message.reply(`❌ No ${targetGender.toLowerCase()} members found in this group.`);
+        return api.sendMessage(
+          "❌ No suitable match found.",
+          event.threadID,
+          event.messageID
+        );
       }
 
-      const matched = candidates[Math.floor(Math.random() * candidates.length)];
+      const match = candidates[Math.floor(Math.random() * candidates.length)];
+      const matchName = match.name;
 
-      let name2 = await usersData.getName(matched.userID).catch(() => null);
-      if (!name2) name2 = matched?.name || matched?.fullName || "Unknown User";
+      // ---------- AVATAR LOAD ----------
+      const avatar1 = await usersData.getAvatarUrl(senderID);
+      const avatar2 = await usersData.getAvatarUrl(match.id);
 
-      const avatarPath2 = await getAvatarUrl(matched.userID).catch(() => null);
+      const streamToBuffer = (stream) =>
+        new Promise((resolve, reject) => {
+          const chunks = [];
+          stream.on("data", c => chunks.push(c));
+          stream.on("end", () => resolve(Buffer.concat(chunks)));
+          stream.on("error", reject);
+        });
 
-      // ---------- LOVE % ----------
-      const lovePercent = Math.floor(Math.random() * 36) + 65;
-      const compatibility = Math.floor(Math.random() * 36) + 65;
+      const [buf1, buf2] = await Promise.all([
+        streamToBuffer(await getStreamFromURL(avatar1)),
+        streamToBuffer(await getStreamFromURL(avatar2))
+      ]);
 
-      // ---------- FANCY ITALIC ----------
-      function toFancyItalic(inputName) {
-        const name = String(inputName || "");
-        const map = {
-          A:"𝑨",B:"𝑩",C:"𝑪",D:"𝑫",E:"𝑬",F:"𝑭",G:"𝑮",H:"𝑯",
-          I:"𝑰",J:"𝑱",K:"𝑲",L:"𝑳",M:"𝑴",N:"𝑵",O:"𝑶",P:"𝑷",
-          Q:"𝑸",R:"𝑹",S:"𝑺",T:"𝑻",U:"𝑼",V:"𝑽",W:"𝑾",X:"𝑿",
-          Y:"𝒀",Z:"𝒁",
-          a:"𝒂",b:"𝒃",c:"𝒄",d:"𝒅",e:"𝒆",f:"𝒇",g:"𝒈",h:"𝒉",
-          i:"𝒊",j:"𝒋",k:"𝒌",l:"𝒍",m:"𝒎",n:"𝒏",o:"𝒐",p:"𝒑",
-          q:"𝒒",r:"𝒓",s:"𝒔",t:"𝒕",u:"𝒖",v:"𝒗",w:"𝒘",x:"𝒙",
-          y:"𝒚",z:"𝒛"
-        };
-        return name.split("").map(ch => map[ch] || ch).join("");
+      const img1 = await loadImage(buf1);
+      const img2 = await loadImage(buf2);
+
+      // ---------- BACKGROUNDS ----------
+      const backgrounds = [
+        {
+          url: "https://drive.google.com/uc?export=download&id=14tE4z8bZDv_Xco8V1WUgE4g0uZ-5CVYi",
+          type: "normal"
+        },
+        {
+          url: "https://drive.google.com/uc?export=download&id=1fMiWIjFjJk9q89JPyAYU4LHHfoM_3N4w",
+          type: "normal"
+        },
+        {
+          url: "https://drive.google.com/uc?export=download&id=1BJQy4sj7lStDL1flpuZROuav2Ez2Wy21",
+          type: "normal"
+        },
+        {
+          url: "https://drive.google.com/uc?export=download&id=1v3ix13pgp9Lkbl7MaF968SNPTOlkf_Y_",
+          type: "special1"
+        },
+        {
+          url: "https://drive.google.com/uc?export=download&id=19QEwghmb2jOmmqeFG-9ouAWYtQyHd0NF",
+          type: "special2"
+        }
+      ];
+
+      const selectedBg =
+        backgrounds[Math.floor(Math.random() * backgrounds.length)];
+
+      const bgBuffer = await streamToBuffer(
+        await getStreamFromURL(selectedBg.url)
+      );
+
+      const background = await loadImage(bgBuffer);
+
+      const canvas = createCanvas(background.width, background.height);
+      const ctx = canvas.getContext("2d");
+
+      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
+
+      // ---------- DRAW SYSTEM ----------
+      if (selectedBg.type === "special1") {
+        // 🔵 Special 1
+        const AVATAR_SIZE = 200;
+        ctx.drawImage(img1, 955, 185, AVATAR_SIZE, AVATAR_SIZE);
+        ctx.drawImage(img2, 115, 185, AVATAR_SIZE, AVATAR_SIZE);
+
+      } else if (selectedBg.type === "special2") {
+        // 🟣 Special 2
+        ctx.drawImage(img1, 111, 175, 330, 330);
+        ctx.drawImage(img2, 1018, 173, 330, 330);
+
+      } else {
+        // 🟢 Normal
+        const AVATAR_SIZE = 170;
+        ctx.drawImage(img1, 385, 40, AVATAR_SIZE, AVATAR_SIZE);
+        ctx.drawImage(img2, canvas.width - 213, 190, AVATAR_SIZE, AVATAR_SIZE);
       }
 
-      const fancyName1 = toFancyItalic(name1);
-      const fancyName2 = toFancyItalic(name2);
+      // ---------- SAVE ----------
+      const tmpDir = path.join(__dirname, "tmp");
+      await fs.ensureDir(tmpDir);
 
-      // ---------- MESSAGE ----------
-      const msg =
-`💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖
+      const filePath = path.join(tmpDir, `pair_${Date.now()}.png`);
+      await fs.writeFile(filePath, canvas.toBuffer("image/png"));
+
+      const lovePercent = Math.floor(Math.random() * 31) + 70;
+
+      const text = `💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖
 
 💫 𝑻𝒐𝒏𝒊𝒈𝒉𝒕, 𝒅𝒆𝒔𝒕𝒊𝒏𝒚 𝒘𝒉𝒊𝒔𝒑𝒆𝒓𝒔 𝒔𝒐𝒇𝒕𝒍𝒚…
 𝒕𝒘𝒐 𝒉𝒆𝒂𝒓𝒕𝒔 𝒂𝒍𝒊𝒈𝒏 𝒖𝒏𝒅𝒆𝒓 𝒕𝒉𝒆 𝒈𝒍𝒐𝒘 𝒐𝒇 𝒇𝒂𝒕𝒆.
@@ -95,112 +163,22 @@ module.exports = {
 ✨ 𝐌𝐚𝐲 𝐭𝐡𝐢𝐬 𝐜𝐨𝐧𝐧𝐞𝐜𝐭𝐢𝐨𝐧 𝐛𝐥𝐨𝐨𝐦 𝐰𝐢𝐭𝐡 𝐞𝐥𝐞𝐠𝐚𝐧𝐜𝐞, 𝐩𝐚𝐬𝐢𝐨𝐧,
 𝐚𝐧𝐝 𝐚 𝐭𝐨𝐮𝐜𝐡 𝐨𝐟 𝐭𝐢𝐦𝐞𝐥𝐞𝐬𝐬 𝐫𝐨𝐦𝐚𝐧𝐜𝐞. ✨`;
 
-      // ---------- BACKGROUND ----------
-      const streamToBuffer = (stream) =>
-        new Promise((resolve, reject) => {
-          const chunks = [];
-          stream.on("data", c => chunks.push(c));
-          stream.on("end", () => resolve(Buffer.concat(chunks)));
-          stream.on("error", reject);
-        });
-
-      const bgUrls = [
-        "https://raw.githubusercontent.com/bdrakib12/baby-goat-bot/main/scripts/cmds/cache/pair.png",
-        "https://i.postimg.cc/cJNqywkj/pair.png"
-      ];
-
-      let bgImage = null;
-      for (const url of bgUrls) {
-        try {
-          const s = await getStreamFromURL(url);
-          const b = await streamToBuffer(s);
-          bgImage = await Jimp.read(b);
-          break;
-        } catch {}
-      }
-
-      if (!bgImage) return message.reply(msg);
-      const bg = bgImage;
-
-      // ---------- AVATARS ----------
-      const AVATAR_SIZE = 200;
-      const pos1 = { x: 955, y: 185 };
-      const pos2 = { x: 115, y: 185 };
-
-      async function loadAvatar(localPath, fallbackName) {
-        try {
-          if (localPath && fs.existsSync(localPath)) {
-            return await Jimp.read(localPath);
-          }
-        } catch {}
-        return createPlaceholderAvatar(fallbackName);
-      }
-
-      function createPlaceholderAvatar(name) {
-        const img = new Jimp(AVATAR_SIZE, AVATAR_SIZE, "#f0f0ff");
-        const initials = String(name || "U")
-          .split(" ")
-          .map(w => w[0])
-          .filter(Boolean)
-          .slice(0, 2)
-          .join("")
-          .toUpperCase();
-
-        return Jimp.loadFont(Jimp.FONT_SANS_32_BLACK).then(font => {
-          img.print(
-            font,
-            0,
-            0,
-            {
-              text: initials,
-              alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-              alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-            },
-            AVATAR_SIZE,
-            AVATAR_SIZE
-          );
-          return img;
-        });
-      }
-
-      let img1 = await loadAvatar(avatarPath1, name1);
-      let img2 = await loadAvatar(avatarPath2, name2);
-
-      img1 = img1.resize(AVATAR_SIZE, AVATAR_SIZE).circle();
-      img2 = img2.resize(AVATAR_SIZE, AVATAR_SIZE).circle();
-
-      bg.composite(img1, pos1.x, pos1.y);
-      bg.composite(img2, pos2.x, pos2.y);
-
-      try {
-        const fontWhite = await Jimp.loadFont(Jimp.FONT_SANS_32_WHITE);
-        const textLine = `❤ ${lovePercent}%   •   🌟 ${compatibility}%`;
-        bg.print(
-          fontWhite,
-          0,
-          bg.bitmap.height - 80,
-          {
-            text: textLine,
-            alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
-            alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE
-          },
-          bg.bitmap.width,
-          40
-        );
-      } catch {}
-
-      const finalBuffer = await bg.getBufferAsync(Jimp.MIME_PNG);
-      const imgStream = Readable.from(finalBuffer);
-      imgStream.path = "pair.png";
-
-      return message.reply({
-        body: msg,
-        attachment: imgStream
-      });
+      await api.sendMessage(
+        {
+          body: text,
+          attachment: fs.createReadStream(filePath)
+        },
+        event.threadID,
+        () => fs.unlink(filePath).catch(() => {}),
+        event.messageID
+      );
 
     } catch (err) {
-      console.error("pair command error:", err);
-      return message.reply("❌ An unexpected error occurred. Please try again later.");
+      api.sendMessage(
+        "❌ Error: " + err.message,
+        event.threadID,
+        event.messageID
+      );
     }
   }
 };
