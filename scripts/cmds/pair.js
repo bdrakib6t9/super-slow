@@ -6,7 +6,7 @@ const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
-    name: "pai",
+    name: "pair",
     author: "Rakib",
     category: "love",
   },
