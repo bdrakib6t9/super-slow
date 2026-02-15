@@ -2,43 +2,55 @@ const { createCanvas, loadImage } = require("canvas");
 const fs = require("fs-extra");
 const path = require("path");
 const { getStreamFromURL } = global.utils;
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "slap",
-    version: "4.0",
+    version: "5.0",
     author: "Rakib",
     countDown: 5,
     role: 0,
     shortDescription: "Custom slap image with circular avatars",
     longDescription: "Custom slap image using drive template and circular avatars",
     category: "FUN & GAME",
-    guide: { en: "{pn} @tag" }
+    guide: "{pn} @tag OR reply"
   },
 
   langs: {
-    en: { noTag: "যারে থাপড়াবি ওরে মেনশন দে 😒" }
+    en: {
+      noTag: "যারে থাপড়াবি ওরে মেনশন দে অথবা রিপ্লাই দে 😒"
+    }
   },
 
-  onStart: async function ({ event, message, usersData, getLang }) {
+  onStart: async function ({ event, message, getLang }) {
 
     const uid1 = event.senderID;
-    const mentions = Object.keys(event.mentions || {});
-    const uid2 = mentions[0];
+    let uid2;
+
+    // ✅ Priority 1: Reply
+    if (event.type === "message_reply") {
+      uid2 = event.messageReply.senderID;
+    }
+
+    // ✅ Priority 2: Mention
+    else if (Object.keys(event.mentions || {}).length > 0) {
+      uid2 = Object.keys(event.mentions)[0];
+    }
 
     if (!uid2)
       return message.reply(getLang("noTag"));
 
     try {
 
-      // 🖼️ Avatar URL (local cache system)
-      const avatar1 = await usersData.getAvatarUrl(uid1);
-      const avatar2 = await usersData.getAvatarUrl(uid2);
+      // 🖼️ Avatar (Custom Local Path System)
+      const avatarPath1 = await getAvatarUrl(uid1).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(uid2).catch(() => null);
 
-      if (!avatar1 || !avatar2)
+      if (!avatarPath1 || !avatarPath2)
         return message.reply("❌ Avatar পাওয়া যায়নি।");
 
-      // 🖼️ Background from Drive
+      // 🌄 Background from Drive
       const bgURL =
         "https://drive.google.com/uc?export=download&id=1e10wHiZ8KgbYJQutjE-FTAMucQVSKnIH";
 
@@ -47,8 +59,8 @@ module.exports = {
 
       const [template, img1, img2] = await Promise.all([
         loadImage(bgBuffer),
-        loadImage(avatar1),
-        loadImage(avatar2)
+        loadImage(avatarPath1),
+        loadImage(avatarPath2)
       ]);
 
       const canvas = createCanvas(template.width, template.height);
@@ -56,7 +68,7 @@ module.exports = {
 
       ctx.drawImage(template, 0, 0);
 
-      // 🔵 Circle avatar function
+      // 🔵 Circle Avatar Function
       function drawCircleAvatar(img, x, y, size) {
         ctx.save();
         ctx.beginPath();
@@ -67,10 +79,11 @@ module.exports = {
         ctx.restore();
       }
 
-      // 👋 Position same as your old layout
-      drawCircleAvatar(img1, 165, 230, 90);
-      drawCircleAvatar(img2, 235, 500, 110);
+      // 👋 Avatar Position
+      drawCircleAvatar(img1, 165, 230, 90);   // Sender
+      drawCircleAvatar(img2, 235, 500, 110);  // Target
 
+      // 📂 Temp Folder
       const tmpDir = path.join(__dirname, "tmp");
       await fs.ensureDir(tmpDir);
 
@@ -95,7 +108,7 @@ module.exports = {
   }
 };
 
-// helper
+// 🔧 Stream → Buffer
 function streamToBuffer(stream) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -103,4 +116,4 @@ function streamToBuffer(stream) {
     stream.on("end", () => resolve(Buffer.concat(chunks)));
     stream.on("error", reject);
   });
-  }
+}
