@@ -8,65 +8,73 @@ module.exports = {
   config: {
     name: "love",
     aliases: ["lve"],
-    version: "4.0",
+    version: "5.0",
     author: "Rakib",
     countDown: 5,
     role: 0,
     shortDescription: "Propose with custom image",
     longDescription: "Generate a propose image with avatars perfectly placed.",
     category: "fun",
-    guide: "{pn} @mention"
+    guide: "{pn} @mention OR reply"
   },
 
   onStart: async function ({ message, event, usersData }) {
 
-    const mention = Object.keys(event.mentions || {});
-    if (mention.length === 0)
-      return message.reply("❗ দয়া করে কাউকে mention করো।");
+    let mentionedID;
+
+    // ✅ Priority 1: Reply করলে
+    if (event.type === "message_reply") {
+      mentionedID = event.messageReply.senderID;
+    }
+
+    // ✅ Priority 2: Mention করলে
+    else if (Object.keys(event.mentions || {}).length > 0) {
+      mentionedID = Object.keys(event.mentions)[0];
+    }
+
+    if (!mentionedID)
+      return message.reply("❗ কাউকে mention করো অথবা কারো মেসেজে reply দাও।");
 
     const senderID = event.senderID;
-    const mentionedID = mention[0];
 
     try {
-      // 👤 Names
+
+      // 👤 Name
       const nameSender = await usersData.getName(senderID).catch(() => "User");
       const nameMentioned = await usersData.getName(mentionedID).catch(() => "User");
 
-      // 🖼️ Local avatar path
+      // 🖼 Avatar
       const avatarPathSender = await getAvatarUrl(senderID).catch(() => null);
       const avatarPathMentioned = await getAvatarUrl(mentionedID).catch(() => null);
 
       if (!avatarPathSender || !avatarPathMentioned)
         return message.reply("❌ Avatar পাওয়া যায়নি।");
 
-      // 🌄 Background (Google Drive direct)
-      const bgURL =
-        "https://drive.google.com/uc?export=download&id=1gEgniSo0kRqB7iiFYEMP_o_0hbrO4nYy";
-
+      // 🌄 Background
+      const bgURL = "https://drive.google.com/uc?export=download&id=1gEgniSo0kRqB7iiFYEMP_o_0hbrO4nYy";
       const bgStream = await getStreamFromURL(bgURL);
       const bgBuffer = await streamToBuffer(bgStream);
 
-      // Load images
-      const [avatarImgSender, avatarImgMentioned, bg] = await Promise.all([
+      const [avatarSender, avatarMentioned, bg] = await Promise.all([
         Canvas.loadImage(avatarPathSender),
         Canvas.loadImage(avatarPathMentioned),
         Canvas.loadImage(bgBuffer)
       ]);
 
-      // 🎨 Canvas setup
-      const canvasWidth = 1280;
-      const canvasHeight = 1280;
-      const canvas = Canvas.createCanvas(canvasWidth, canvasHeight);
+      // 🎨 Canvas
+      const width = 1280;
+      const height = 1280;
+      const canvas = Canvas.createCanvas(width, height);
       const ctx = canvas.getContext("2d");
 
-      ctx.drawImage(bg, 0, 0, canvasWidth, canvasHeight);
+      ctx.drawImage(bg, 0, 0, width, height);
 
-      // Avatar size & position
-      const avatarSize = Math.floor(canvasWidth * 0.11);
+      const avatarSize = Math.floor(width * 0.11);
+
       const girlHead = { x: 470, y: 310 };
       const boyHead = { x: 690, y: 200 };
 
-      // 💙 Mentioned (left)
+      // 💙 Mentioned
       ctx.save();
       ctx.beginPath();
       ctx.arc(
@@ -76,17 +84,12 @@ module.exports = {
         0,
         Math.PI * 2
       );
+      ctx.closePath();
       ctx.clip();
-      ctx.drawImage(
-        avatarImgMentioned,
-        girlHead.x,
-        girlHead.y,
-        avatarSize,
-        avatarSize
-      );
+      ctx.drawImage(avatarMentioned, girlHead.x, girlHead.y, avatarSize, avatarSize);
       ctx.restore();
 
-      // ❤️ Sender (right)
+      // ❤️ Sender
       ctx.save();
       ctx.beginPath();
       ctx.arc(
@@ -96,31 +99,21 @@ module.exports = {
         0,
         Math.PI * 2
       );
+      ctx.closePath();
       ctx.clip();
-      ctx.drawImage(
-        avatarImgSender,
-        boyHead.x,
-        boyHead.y,
-        avatarSize,
-        avatarSize
-      );
+      ctx.drawImage(avatarSender, boyHead.x, boyHead.y, avatarSize, avatarSize);
       ctx.restore();
 
-      // 💾 Save image
+      // 📂 Temp folder
       const tmpDir = path.join(__dirname, "tmp");
       await fs.ensureDir(tmpDir);
 
-      const imgPath = path.join(
-        tmpDir,
-        `${senderID}_${mentionedID}_marry.png`
-      );
-
+      const imgPath = path.join(tmpDir, `${senderID}_${mentionedID}_love.png`);
       await fs.writeFile(imgPath, canvas.toBuffer("image/png"));
 
-      // 💬 Text
       const text =
         senderID === mentionedID
-          ? "নিজেকে নিজেকে বিয়ে করবে ? 😂❤️"
+          ? "নিজেকে নিজেই বিয়ে করবে নাকি? 😂❤️"
           : `💍 ${nameSender} এর বিয়ে ${nameMentioned} এর সাথে 🥰❤️`;
 
       await message.reply(
@@ -131,23 +124,22 @@ module.exports = {
         () => fs.unlink(imgPath).catch(() => {})
       );
 
-      // 🧹 memory clean
       canvas.width = canvas.height = 0;
       global.gc && global.gc();
 
     } catch (err) {
-      console.error("❌ Error in marry command:", err);
+      console.error("❌ Error in love command:", err);
       message.reply(`⚠️ কোনো সমস্যা হয়েছে!\n${err.message}`);
     }
   }
 };
 
-// helper
+// 🔧 Stream → Buffer
 function streamToBuffer(stream) {
   return new Promise((resolve, reject) => {
     const chunks = [];
-    stream.on("data", c => chunks.push(c));
+    stream.on("data", chunk => chunks.push(chunk));
     stream.on("end", () => resolve(Buffer.concat(chunks)));
     stream.on("error", reject);
   });
-    }
+        }
