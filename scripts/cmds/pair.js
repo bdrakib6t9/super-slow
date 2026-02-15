@@ -1,89 +1,49 @@
+const axios = require("axios");
 const { createCanvas, loadImage } = require("canvas");
-const fs = require("fs-extra");
+const fs = require("fs");
 const path = require("path");
-const { getStreamFromURL } = global.utils;
+const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
     name: "pair",
     author: "Rakib",
-    version: "5.0",
-    category: "love"
+    category: "love",
   },
 
   onStart: async function ({ api, event, usersData }) {
     try {
       const senderID = event.senderID;
 
-      // ---------- USER INFO ----------
       const senderData = await usersData.get(senderID);
-      const senderName = senderData?.name || "User";
+      const senderName = senderData.name;
 
-      const threadInfo = await api.getThreadInfo(event.threadID);
-      const members = threadInfo.userInfo;
+      const threadData = await api.getThreadInfo(event.threadID);
+      const users = threadData.userInfo;
 
-      const myData = members.find(u => u.id == senderID);
-      if (!myData || !myData.gender) {
-        return api.sendMessage(
-          "⚠️ Could not determine your gender.",
-          event.threadID,
-          event.messageID
-        );
-      }
+      const myData = users.find(u => u.id === senderID);
+      if (!myData || !myData.gender)
+        return api.sendMessage("⚠️ Could not determine your gender.", event.threadID);
 
       const myGender = myData.gender;
 
-      // ---------- FIND MATCH ----------
-      let candidates = [];
+      let matchCandidates = users.filter(
+        u =>
+          u.id !== senderID &&
+          ((myGender === "MALE" && u.gender === "FEMALE") ||
+           (myGender === "FEMALE" && u.gender === "MALE"))
+      );
 
-      if (myGender === "MALE") {
-        candidates = members.filter(
-          u => u.gender === "FEMALE" && u.id != senderID
-        );
-      } else if (myGender === "FEMALE") {
-        candidates = members.filter(
-          u => u.gender === "MALE" && u.id != senderID
-        );
-      } else {
-        return api.sendMessage(
-          "⚠️ Gender undefined.",
-          event.threadID,
-          event.messageID
-        );
-      }
+      if (!matchCandidates.length)
+        return api.sendMessage("❌ No suitable match found.", event.threadID);
 
-      if (!candidates.length) {
-        return api.sendMessage(
-          "❌ No suitable match found.",
-          event.threadID,
-          event.messageID
-        );
-      }
+      const selectedMatch =
+        matchCandidates[Math.floor(Math.random() * matchCandidates.length)];
 
-      const match = candidates[Math.floor(Math.random() * candidates.length)];
-      const matchName = match.name;
+      const matchName = selectedMatch.name;
 
-      // ---------- AVATAR LOAD ----------
-      const avatar1 = await usersData.getAvatarUrl(senderID);
-      const avatar2 = await usersData.getAvatarUrl(match.id);
+      /* ================= BACKGROUND LIST ================= */
 
-      const streamToBuffer = (stream) =>
-        new Promise((resolve, reject) => {
-          const chunks = [];
-          stream.on("data", c => chunks.push(c));
-          stream.on("end", () => resolve(Buffer.concat(chunks)));
-          stream.on("error", reject);
-        });
-
-      const [buf1, buf2] = await Promise.all([
-        streamToBuffer(await getStreamFromURL(avatar1)),
-        streamToBuffer(await getStreamFromURL(avatar2))
-      ]);
-
-      const img1 = await loadImage(buf1);
-      const img2 = await loadImage(buf2);
-
-      // ---------- BACKGROUNDS ----------
       const backgrounds = [
         {
           url: "https://drive.google.com/uc?export=download&id=14tE4z8bZDv_Xco8V1WUgE4g0uZ-5CVYi",
@@ -99,57 +59,97 @@ module.exports = {
         },
         {
           url: "https://drive.google.com/uc?export=download&id=1v3ix13pgp9Lkbl7MaF968SNPTOlkf_Y_",
-          type: "special1"
+          type: "special200"
         },
         {
           url: "https://drive.google.com/uc?export=download&id=19QEwghmb2jOmmqeFG-9ouAWYtQyHd0NF",
-          type: "special2"
+          type: "special330"
         }
       ];
 
       const selectedBg =
         backgrounds[Math.floor(Math.random() * backgrounds.length)];
 
-      const bgBuffer = await streamToBuffer(
-        await getStreamFromURL(selectedBg.url)
-      );
+      /* ================= SAFE DRIVE IMAGE LOADER ================= */
 
-      const background = await loadImage(bgBuffer);
+      async function loadDriveImage(url) {
+        const res = await axios.get(url, {
+          responseType: "arraybuffer",
+          headers: { "User-Agent": "Mozilla/5.0" }
+        });
 
-      const canvas = createCanvas(background.width, background.height);
-      const ctx = canvas.getContext("2d");
+        const contentType = res.headers["content-type"];
+        if (!contentType || !contentType.includes("image")) {
+          throw new Error("Drive returned non-image content");
+        }
 
-      ctx.drawImage(background, 0, 0, canvas.width, canvas.height);
-
-      // ---------- DRAW SYSTEM ----------
-      if (selectedBg.type === "special1") {
-        // 🔵 Special 1
-        const AVATAR_SIZE = 200;
-        ctx.drawImage(img1, 955, 185, AVATAR_SIZE, AVATAR_SIZE);
-        ctx.drawImage(img2, 115, 185, AVATAR_SIZE, AVATAR_SIZE);
-
-      } else if (selectedBg.type === "special2") {
-        // 🟣 Special 2
-        ctx.drawImage(img1, 111, 175, 330, 330);
-        ctx.drawImage(img2, 1018, 173, 330, 330);
-
-      } else {
-        // 🟢 Normal
-        const AVATAR_SIZE = 170;
-        ctx.drawImage(img1, 385, 40, AVATAR_SIZE, AVATAR_SIZE);
-        ctx.drawImage(img2, canvas.width - 213, 190, AVATAR_SIZE, AVATAR_SIZE);
+        return Buffer.from(res.data);
       }
 
-      // ---------- SAVE ----------
-      const tmpDir = path.join(__dirname, "tmp");
-      await fs.ensureDir(tmpDir);
+      let bgBuffer;
+      try {
+        bgBuffer = await loadDriveImage(selectedBg.url);
+      } catch (err) {
+        return api.sendMessage(
+          "❌ Failed to load background image.",
+          event.threadID
+        );
+      }
 
-      const filePath = path.join(tmpDir, `pair_${Date.now()}.png`);
-      await fs.writeFile(filePath, canvas.toBuffer("image/png"));
+      const baseImage = await loadImage(bgBuffer);
 
-      const lovePercent = Math.floor(Math.random() * 31) + 70;
+      const canvas = createCanvas(baseImage.width, baseImage.height);
+      const ctx = canvas.getContext("2d");
 
-      const text = `💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖
+      ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
+
+      /* ================= LOAD LOCAL AVATARS ================= */
+
+      const avatarPath1 = await getAvatarUrl(senderID).catch(() => null);
+      const avatarPath2 = await getAvatarUrl(selectedMatch.id).catch(() => null);
+
+      if (!avatarPath1 || !fs.existsSync(avatarPath1))
+        return api.sendMessage("❌ Sender avatar not found.", event.threadID);
+
+      if (!avatarPath2 || !fs.existsSync(avatarPath2))
+        return api.sendMessage("❌ Match avatar not found.", event.threadID);
+
+      const avatar1 = await loadImage(avatarPath1);
+      const avatar2 = await loadImage(avatarPath2);
+
+      /* ================= SIZE CONTROL ================= */
+
+      if (selectedBg.type === "special200") {
+        const AVATAR_SIZE = 200;
+        ctx.drawImage(avatar1, 955, 185, AVATAR_SIZE, AVATAR_SIZE);
+        ctx.drawImage(avatar2, 115, 185, AVATAR_SIZE, AVATAR_SIZE);
+      }
+
+      else if (selectedBg.type === "special330") {
+        ctx.drawImage(avatar1, 111, 175, 330, 330);
+        ctx.drawImage(avatar2, 1018, 173, 330, 330);
+      }
+
+      else {
+        ctx.drawImage(avatar1, 385, 40, 170, 170);
+        ctx.drawImage(avatar2, canvas.width - 213, 190, 180, 170);
+      }
+
+      /* ================= SAVE IMAGE ================= */
+
+      const outputPath = path.join(__dirname, "pair_output.png");
+
+      const out = fs.createWriteStream(outputPath);
+      const stream = canvas.createPNGStream();
+      stream.pipe(out);
+
+      out.on("finish", () => {
+        const lovePercent = Math.floor(Math.random() * 31) + 70;
+
+        api.sendMessage(
+          {
+            body:
+`💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖
 
 💫 𝑻𝒐𝒏𝒊𝒈𝒉𝒕, 𝒅𝒆𝒔𝒕𝒊𝒏𝒚 𝒘𝒉𝒊𝒔𝒑𝒆𝒓𝒔 𝒔𝒐𝒇𝒕𝒍𝒚…
 𝒕𝒘𝒐 𝒉𝒆𝒂𝒓𝒕𝒔 𝒂𝒍𝒊𝒈𝒏 𝒖𝒏𝒅𝒆𝒓 𝒕𝒉𝒆 𝒈𝒍𝒐𝒘 𝒐𝒇 𝒇𝒂𝒕𝒆.
@@ -158,24 +158,18 @@ module.exports = {
 💞 ${fancyName2}
 
 ❤️ 𝑳𝒐𝒗𝒆 𝑹𝒂𝒕𝒊𝒏𝒈: ${lovePercent}%  
-🌟 𝑺𝒐𝒖𝒍 𝑨𝒍𝒊𝒈𝒏𝒎𝒆𝒏𝒕: ${compatibility}%
+🌟 𝑺𝒐𝒖𝒍 𝑨𝒍𝒊𝒈𝒏𝒎𝒆𝒏𝒕: ${compatibility}%`,
+            attachment: fs.createReadStream(outputPath)
+          },
+          event.threadID,
+          () => fs.unlinkSync(outputPath),
+          event.messageID
+        );
+      });
 
-✨ 𝐌𝐚𝐲 𝐭𝐡𝐢𝐬 𝐜𝐨𝐧𝐧𝐞𝐜𝐭𝐢𝐨𝐧 𝐛𝐥𝐨𝐨𝐦 𝐰𝐢𝐭𝐡 𝐞𝐥𝐞𝐠𝐚𝐧𝐜𝐞, 𝐩𝐚𝐬𝐢𝐨𝐧,
-𝐚𝐧𝐝 𝐚 𝐭𝐨𝐮𝐜𝐡 𝐨𝐟 𝐭𝐢𝐦𝐞𝐥𝐞𝐬𝐬 𝐫𝐨𝐦𝐚𝐧𝐜𝐞. ✨`;
-
-      await api.sendMessage(
-        {
-          body: text,
-          attachment: fs.createReadStream(filePath)
-        },
-        event.threadID,
-        () => fs.unlink(filePath).catch(() => {}),
-        event.messageID
-      );
-
-    } catch (err) {
+    } catch (error) {
       api.sendMessage(
-        "❌ Error: " + err.message,
+        "❌ Pair error:\n" + error.message,
         event.threadID,
         event.messageID
       );
