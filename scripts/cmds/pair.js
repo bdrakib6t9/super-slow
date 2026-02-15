@@ -6,7 +6,7 @@ const { getAvatarUrl } = require("../../rakib/customApi/getAvatarUrl");
 
 module.exports = {
   config: {
-    name: "pair",
+    name: "pai",
     author: "Rakib",
     category: "love",
   },
@@ -70,8 +70,6 @@ module.exports = {
       const selectedBg =
         backgrounds[Math.floor(Math.random() * backgrounds.length)];
 
-      /* ================= SAFE DRIVE IMAGE LOADER ================= */
-
       async function loadDriveImage(url) {
         const res = await axios.get(url, {
           responseType: "arraybuffer",
@@ -90,10 +88,7 @@ module.exports = {
       try {
         bgBuffer = await loadDriveImage(selectedBg.url);
       } catch (err) {
-        return api.sendMessage(
-          "❌ Failed to load background image.",
-          event.threadID
-        );
+        return api.sendMessage("❌ Failed to load background image.", event.threadID);
       }
 
       const baseImage = await loadImage(bgBuffer);
@@ -103,7 +98,7 @@ module.exports = {
 
       ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
 
-      /* ================= LOAD LOCAL AVATARS ================= */
+      /* ================= LOAD AVATARS ================= */
 
       const avatarPath1 = await getAvatarUrl(senderID).catch(() => null);
       const avatarPath2 = await getAvatarUrl(selectedMatch.id).catch(() => null);
@@ -117,25 +112,39 @@ module.exports = {
       const avatar1 = await loadImage(avatarPath1);
       const avatar2 = await loadImage(avatarPath2);
 
-      /* ================= SIZE CONTROL ================= */
+      /* ================= AVATAR DRAW ================= */
 
       if (selectedBg.type === "special200") {
-        const AVATAR_SIZE = 200;
-        ctx.drawImage(avatar1, 955, 185, AVATAR_SIZE, AVATAR_SIZE);
-        ctx.drawImage(avatar2, 115, 185, AVATAR_SIZE, AVATAR_SIZE);
+        ctx.drawImage(avatar1, 955, 185, 200, 200);
+        ctx.drawImage(avatar2, 115, 185, 200, 200);
       }
-
       else if (selectedBg.type === "special330") {
         ctx.drawImage(avatar1, 111, 175, 330, 330);
         ctx.drawImage(avatar2, 1018, 173, 330, 330);
       }
-
       else {
         ctx.drawImage(avatar1, 385, 40, 170, 170);
         ctx.drawImage(avatar2, canvas.width - 213, 190, 180, 170);
       }
 
-      /* ================= SAVE IMAGE ================= */
+      /* ================= FANCY FUNCTION ================= */
+
+      function toFancy(text) {
+        const normal = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const fancy  = "𝒂𝒃𝒄𝒅𝒆𝒇𝒈𝒉𝒊𝒋𝒌𝒍𝒎𝒏𝒐𝒑𝒒𝒓𝒔𝒕𝒖𝒗𝒘𝒙𝒚𝒛𝑨𝑩𝑪𝑫𝑬𝑭𝑮𝑯𝑰𝑱𝑲𝑳𝑴𝑵𝑶𝑷𝑸𝑹𝑺𝑻𝑼𝑽𝑾𝑿𝒀𝒁";
+        return text.split("").map(char => {
+          const index = normal.indexOf(char);
+          return index !== -1 ? fancy[index] : char;
+        }).join("");
+      }
+
+      const fancyName1 = toFancy(senderName);
+      const fancyName2 = toFancy(matchName);
+
+      const lovePercent = Math.floor(Math.random() * 31) + 70;
+      const compatibility = Math.floor(Math.random() * 21) + 80;
+
+      /* ================= SAVE & SEND ================= */
 
       const outputPath = path.join(__dirname, "pair_output.png");
 
@@ -144,21 +153,20 @@ module.exports = {
       stream.pipe(out);
 
       out.on("finish", () => {
-        const lovePercent = Math.floor(Math.random() * 31) + 70;
-
         api.sendMessage(
           {
             body:
 `💖✨ 𝐄𝐥𝐞𝐠𝐚𝐧𝐭 𝐏𝐚𝐢𝐫 𝐑𝐞𝐯𝐞𝐚𝐥 ✨💖
-
-💫 𝑻𝒐𝒏𝒊𝒈𝒉𝒕, 𝒅𝒆𝒔𝒕𝒊𝒏𝒚 𝒘𝒉𝒊𝒔𝒑𝒆𝒓𝒔 𝒔𝒐𝒇𝒕𝒍𝒚…
-𝒕𝒘𝒐 𝒉𝒆𝒂𝒓𝒕𝒔 𝒂𝒍𝒊𝒈𝒏 𝒖𝒏𝒅𝒆𝒓 𝒕𝒉𝒆 𝒈𝒍𝒐𝒘 𝒐𝒇 𝒇𝒂𝒕𝒆.
-
-💞 ${fancyName1}
-💞 ${fancyName2}
-
+🌙 𝑻𝒐𝒏𝒊𝒈𝒉𝒕, 𝒅𝒆𝒔𝒕𝒊𝒏𝒚 𝒘𝒉𝒊𝒔𝒑𝒆𝒓𝒔 𝒔𝒐𝒇𝒕𝒍𝒚...
+💫 𝑻𝒘𝒐 𝒔𝒐𝒖𝒍𝒔 𝒎𝒆𝒆𝒕 𝒖𝒏𝒅𝒆𝒓 𝒕𝒉𝒆 𝒈𝒍𝒐𝒘 𝒐𝒇 𝒇𝒂𝒕𝒆.
+━━━━━━━━━━━━━━━
+💞 ${senderName}
+💞 ${matchName}
+——————————
 ❤️ 𝑳𝒐𝒗𝒆 𝑹𝒂𝒕𝒊𝒏𝒈: ${lovePercent}%  
-🌟 𝑺𝒐𝒖𝒍 𝑨𝒍𝒊𝒈𝒏𝒎𝒆𝒏𝒕: ${compatibility}%`,
+🌟 𝑺𝒐𝒖𝒍 𝑨𝒍𝒊𝒈𝒏𝒎𝒆𝒏𝒕: ${compatibility}%  
+━━━━━━━━━━━━━━━
+💌 𝑴𝒂𝒚 𝒕𝒉𝒊𝒔 𝒃𝒐𝒏𝒅 𝒈𝒓𝒐𝒘 𝒔𝒕𝒓𝒐𝒏𝒈𝒆𝒓 𝒆𝒗𝒆𝒓𝒚 𝒅𝒂𝒚 ✨`,
             attachment: fs.createReadStream(outputPath)
           },
           event.threadID,
